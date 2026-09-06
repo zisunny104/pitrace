@@ -10,6 +10,25 @@
 const PDFJS_VERSION = '6.3.289';
 const PDFJS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/`;
 
+// dynamic import() 沒有原生的 integrity 屬性可用（跟 <script> 標籤不同），這裡手動做等效的
+// 完整性校驗：fetch→算 SHA-384→比對已鎖定的雜湊值→包成 blob: URL 再 import，防止 CDN
+// 內容被竄改。兩個檔案都是單一檔案 bundle（沒有對其他檔案的 relative import），改從 blob: URL
+// 載入不會破壞內部路徑解析。
+const PDFJS_MAIN_SHA384 = 'z3N/QnTq7KUG0r5jEmpE9EQ2Yw9XQxeHTtq/XWs9uR7UDmdiZAI2xGZ7t151ou8z';
+const PDFJS_WORKER_SHA384 = 'ZsWbdAW9R0tLHblpnT9OlTG0oDnOBndXJiKFJnsmzR2TXBm7oh5eDqIyTrxseosS';
+
+async function verifiedBlobUrl(url, expectedSha384Base64) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`下載失敗（${res.status}）：${url}`);
+    const buf = await res.arrayBuffer();
+    const digest = await crypto.subtle.digest('SHA-384', buf);
+    const actual = btoa(String.fromCharCode(...new Uint8Array(digest)));
+    if (actual !== expectedSha384Base64) {
+        throw new Error(`完整性校驗失敗，CDN 內容與預期不符：${url}`);
+    }
+    return URL.createObjectURL(new Blob([buf], { type: 'text/javascript' }));
+}
+
 // 印表機掃描件通常是灰階/彩色點陣影像重新編碼進 PDF，固定 600 DPI 對應一般掃描器常見輸出
 // 解析度即可，不需要使用者逐頁調整；DPI 是渲染時我們自己選定的已知值，不是從檔案偵測，
 // 比一般點陣圖的 metadata 偵測更可靠，SVG 匯出的 mm 換算也因此更準確。
@@ -18,9 +37,17 @@ export const PDF_RENDER_DPI = 600;
 let pdfjsLibPromise = null;
 function loadPdfjsLib() {
     if (!pdfjsLibPromise) {
-        pdfjsLibPromise = import(`${PDFJS_BASE}pdf.min.mjs`).then((lib) => {
-            lib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}pdf.worker.min.mjs`;
+        pdfjsLibPromise = (async () => {
+            const [mainUrl, workerUrl] = await Promise.all([
+                verifiedBlobUrl(`${PDFJS_BASE}pdf.min.mjs`, PDFJS_MAIN_SHA384),
+                verifiedBlobUrl(`${PDFJS_BASE}pdf.worker.min.mjs`, PDFJS_WORKER_SHA384),
+            ]);
+            const lib = await import(mainUrl);
+            lib.GlobalWorkerOptions.workerSrc = workerUrl;
             return lib;
+        })().catch((err) => {
+            pdfjsLibPromise = null;
+            throw err;
         });
     }
     return pdfjsLibPromise;
