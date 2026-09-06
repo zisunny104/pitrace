@@ -68,14 +68,28 @@ export function wireResizableColumns() {
             resizer.classList.add('is-dragging');
             document.body.style.userSelect = 'none';
 
-            function onMove(moveEvt) {
-                const next = clamp(startWidth + (moveEvt.clientX - startX) * sign);
+            // mousemove 頻率可能高於螢幕更新率，這裡用 rAF 節流成每畫格最多套用一次，
+            // 避免每個原生事件都各自觸發一次 layout。
+            let rafId = null;
+            let pendingClientX = startX;
+
+            function apply() {
+                rafId = null;
+                const next = clamp(startWidth + (pendingClientX - startX) * sign);
                 applyWidth(varName, next);
                 updateAria(next);
+            }
+            function onMove(moveEvt) {
+                pendingClientX = moveEvt.clientX;
+                if (rafId === null) rafId = requestAnimationFrame(apply);
             }
             function onUp() {
                 document.removeEventListener('mousemove', onMove);
                 document.removeEventListener('mouseup', onUp);
+                if (rafId !== null) {
+                    cancelAnimationFrame(rafId);
+                    apply();
+                }
                 resizer.classList.remove('is-dragging');
                 document.body.style.userSelect = '';
                 commit(currentWidth(varName, defaultPx));

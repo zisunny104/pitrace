@@ -1008,7 +1008,9 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
        這裡讓它固定在畫面下方置中，作為 announce() 狀態訊息的可視化版本。.main-content 鎖了
        viewport 高度（見上面「頁尾是 flex 手足」那段），畫布下方的浮動工具列
        （.canvas-floating-toolbar）上緣實測落在離視窗底部約 11rem 處，這裡把 snackbar 的
-       bottom 拉到 12rem，讓它穩定浮在工具列上方、不會疊在一起。 */
+       bottom 拉到 12rem，讓它穩定浮在工具列上方、不會疊在一起。z-index 刻意比
+       focus-mode 全螢幕畫布（#scanPaneBox，z-index:1000）高一階，讓 snackbar 一定蓋在上面，
+       不依賴「JS 把它 append 到 body 尾端」這個 DOM 順序來決定疊層。 */
     .pitrace-snackbar {
         position: fixed;
         left: 50%;
@@ -1017,7 +1019,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.2s ease, transform 0.2s ease;
-        z-index: 1000;
+        z-index: 1001;
         max-width: calc(100vw - 2rem);
     }
 
