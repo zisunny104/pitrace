@@ -1130,7 +1130,8 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                 <!-- 編輯器主體：左側物件清單 + 中央畫布 + 右側預覽/設定 dock（桌面以上固定側欄；平板/手機退回堆疊） -->
                 <div class="editor-shell" id="editorShell">
                     <div class="col-resizer" id="colResizerLeft" role="separator" aria-orientation="vertical"
-                        aria-label="調整物件清單欄寬" tabindex="0" data-tooltip="拖曳調整欄寬（方向鍵微調、雙擊重設）">
+                        aria-label="調整物件清單欄寬" tabindex="0" data-tooltip="拖曳調整欄寬（方向鍵微調、雙擊重設）"
+                        data-position="right">
                         <span class="ts-icon is-grip-lines-vertical-icon" aria-hidden="true"></span>
                     </div>
                     <div class="ts-box is-raised" id="scanPaneBox">
@@ -1261,7 +1262,8 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                     </div>
 
                     <div class="col-resizer" id="colResizerRight" role="separator" aria-orientation="vertical"
-                        aria-label="調整預覽／設定欄寬" tabindex="0" data-tooltip="拖曳調整欄寬（方向鍵微調、雙擊重設）">
+                        aria-label="調整預覽／設定欄寬" tabindex="0" data-tooltip="拖曳調整欄寬（方向鍵微調、雙擊重設）"
+                        data-position="left">
                         <span class="ts-icon is-grip-lines-vertical-icon" aria-hidden="true"></span>
                     </div>
 
