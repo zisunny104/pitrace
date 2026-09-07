@@ -498,6 +498,26 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         flex-wrap: nowrap;
     }
 
+    /* Tocas .ts-button 把 min-width 重設成 0，等於拿掉瀏覽器 flex 收縮的自動下限保護；
+       容器寬度不夠時，沒有額外保護的按鈕（例如下面的新增物件「+」）會被壓扁到只剩幾 px 寬，
+       緊鄰的分隔線也會被壓成 0 寬直接消失。這裡讓工具列的每個直接子項都不收縮，
+       擠不下時交給容器既有的 overflow-x:auto 橫向捲動，而不是犧牲按鈕的完整外觀。 */
+    .canvas-floating-toolbar.pane-toolbar>* {
+        flex-shrink: 0;
+    }
+
+    /* 新增物件鈕＋緊鄰的分隔線包成一組，讓 wireToolbarOverflow() 收合/還原時只要切一個
+       元素的 display，兩者維持原本的間距（沿用 .pane-toolbar 的 gap）不用另外處理。 */
+    .pane-tool-collapsible {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .pane-tool-collapsible>* {
+        flex-shrink: 0;
+    }
+
     /* Tocas .ts-selection.is-compact 每顆選項的 .text 內距是給文字按鈕留的（左右各 15px），
        這裡放的是純圖示（文字靠 has-hidden 視覺隱藏），沿用文字按鈕的內距讓圖示浮在一大片
        空白中。另外 .item 本身的高度是自己算出來的（圖示+內距），比 .ts-selection 用來排列
@@ -1168,11 +1188,13 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                                 <div class="ts-text is-description">圖片載入中…</div>
                             </div>
                             <div class="canvas-floating-toolbar pane-toolbar" role="toolbar" aria-label="編輯工具">
-                                <button id="btnAddPieceFloating" class="ts-button is-icon" aria-label="新增物件"
-                                    data-tooltip="新增物件">
-                                    <span class="ts-icon is-plus-icon" aria-hidden="true"></span>
-                                </button>
-                                <div class="pane-toolbar-divider" aria-hidden="true"></div>
+                                <div class="pane-tool-collapsible" data-collapse-priority="1">
+                                    <button id="btnAddPieceFloating" class="ts-button is-icon" aria-label="新增物件"
+                                        data-tooltip="新增物件">
+                                        <span class="ts-icon is-plus-icon" aria-hidden="true"></span>
+                                    </button>
+                                    <div class="pane-toolbar-divider" aria-hidden="true"></div>
+                                </div>
                                 <div class="pane-tool-cluster">
                                     <div class="pane-tool-subcluster">
                                         <div class="ts-selection is-compact" role="radiogroup" aria-label="選取工具">
@@ -1203,7 +1225,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                                         </div>
                                     </div>
 
-                                    <div class="pane-tool-subcluster">
+                                    <div class="pane-tool-subcluster" data-collapse-priority="3">
                                         <div class="ts-selection is-compact" role="radiogroup" aria-label="其他工具">
                                             <label class="item" data-tooltip="平移（H）">
                                                 <input type="radio" name="tool" value="pan" id="tool-pan" aria-label="平移">
@@ -1250,12 +1272,49 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                                         aria-label="目前縮放 100%，按 Enter 可輸入數值">100%</span>
                                     <input type="text" id="zoomInput" class="ts-button" inputmode="decimal"
                                         aria-label="輸入縮放百分比" style="display:none;">
-                                    <button id="btnZoomIn" class="ts-button is-icon" aria-label="放大畫面" data-tooltip="放大畫面">
+                                    <button id="btnZoomIn" class="ts-button is-icon" aria-label="放大畫面" data-tooltip="放大畫面" data-collapse-priority="4">
                                         <span class="ts-icon is-magnifying-glass-plus-icon" aria-hidden="true"></span>
                                     </button>
-                                    <button id="btnZoomFit" class="ts-button is-icon" aria-label="縮放至符合視窗" data-tooltip="縮放至符合視窗">
+                                    <button id="btnZoomFit" class="ts-button is-icon" aria-label="縮放至符合視窗" data-tooltip="縮放至符合視窗" data-collapse-priority="2">
                                         <span class="ts-icon is-expand-icon" aria-hidden="true"></span>
                                     </button>
+                                </div>
+
+                                <!-- 容器寬度不夠同時放下所有按鈕時（例如欄寬被拉桿拖窄），依 data-collapse-priority
+                                     由小到大依序把上面標了優先權的按鈕「完整地」收進這個選單，而不是壓縮/裁切
+                                     它們——比照 Figma 工具列窄寬度時的做法。JS 邏輯見 toolbar.js wireToolbarOverflow()。 -->
+                                <div class="pane-menu-wrap" id="toolbarOverflowWrap" hidden>
+                                    <button id="btnToolbarOverflow" class="ts-button is-icon is-ghost" aria-label="更多工具"
+                                        aria-haspopup="menu" aria-expanded="false" data-tooltip="更多工具">
+                                        <span class="ts-icon is-ellipsis-vertical-icon" aria-hidden="true"></span>
+                                    </button>
+                                    <div class="ts-menu is-dense is-small is-separated pane-dropdown-menu" id="toolbarOverflowMenu"
+                                        role="menu" aria-label="更多工具" hidden>
+                                        <button type="button" class="item" role="menuitem" id="overflowAddPiece" hidden>
+                                            <span class="ts-icon is-plus-icon" aria-hidden="true"></span>
+                                            <span>新增物件</span>
+                                        </button>
+                                        <button type="button" class="item" role="menuitem" id="overflowZoomFit" hidden>
+                                            <span class="ts-icon is-expand-icon" aria-hidden="true"></span>
+                                            <span>縮放至符合視窗</span>
+                                        </button>
+                                        <button type="button" class="item" role="menuitem" id="overflowPan" hidden>
+                                            <span class="ts-icon is-hand-icon" aria-hidden="true"></span>
+                                            <span>平移（H）</span>
+                                        </button>
+                                        <button type="button" class="item" role="menuitem" id="overflowEyedropper" hidden>
+                                            <span class="ts-icon is-eye-dropper-icon" aria-hidden="true"></span>
+                                            <span>取樣背景色（I）</span>
+                                        </button>
+                                        <button type="button" class="item" role="menuitem" id="overflowEraser" hidden>
+                                            <span class="ts-icon is-eraser-icon" aria-hidden="true"></span>
+                                            <span>橡皮擦（E）</span>
+                                        </button>
+                                        <button type="button" class="item" role="menuitem" id="overflowZoomIn" hidden>
+                                            <span class="ts-icon is-magnifying-glass-plus-icon" aria-hidden="true"></span>
+                                            <span>放大畫面</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

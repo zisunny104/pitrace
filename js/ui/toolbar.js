@@ -656,6 +656,87 @@ function wireScanPaneHeader(scanView, statusEl) {
     wireFocusMode(scanView);
 }
 
+// 浮動工具列在容器變窄時的優先權收合：擠不下就把優先權較低（data-collapse-priority 數字
+// 較小）的整顆按鈕完整地收進「更多工具」選單，可見按鈕永遠維持原始大小，不靠壓縮，也
+// 不需要橫向捲動工具列才找得到——比照 Figma 窄寬度工具列的做法。用 ResizeObserver 量
+// 工具列自己的實際寬度（不是 window 寬度），因為可用寬度還受得到使用者可拖曳的欄寬拉桿
+// 影響，CSS viewport breakpoint 沒辦法正確反映。
+function wireToolbarOverflow() {
+    const bar = document.querySelector('.canvas-floating-toolbar');
+    const trigger = el('btnToolbarOverflow');
+    const wrap = el('toolbarOverflowWrap');
+    const menu = el('toolbarOverflowMenu');
+    if (!bar || !trigger || !wrap || !menu) return;
+
+    const units = Array.from(bar.querySelectorAll('[data-collapse-priority]'))
+        .sort((a, b) => Number(a.dataset.collapsePriority) - Number(b.dataset.collapsePriority));
+    // 優先權 -> 該層對應的選單代理按鈕（一層可以對應多顆，例如「其他工具」整叢一起收合時，
+    // 平移／取樣背景色／橡皮擦三顆都要各自在選單裡露出）。代理按鈕直接呼叫真正控制項的
+    // .click()，沿用它原本的 disabled 狀態／事件邏輯，不用另外複製一份判斷。
+    const proxies = {
+        1: [{ menuId: 'overflowAddPiece', targetId: 'btnAddPieceFloating' }],
+        2: [{ menuId: 'overflowZoomFit', targetId: 'btnZoomFit' }],
+        3: [
+            { menuId: 'overflowPan', targetId: 'tool-pan' },
+            { menuId: 'overflowEyedropper', targetId: 'tool-eyedropper' },
+            { menuId: 'overflowEraser', targetId: 'tool-eraser' },
+        ],
+        // 前三層在 #scanPaneBox 被拉到最窄（見 resizable-columns.js 的 MIN_SCAN）時，實測還會
+        // 差最後一小截才放得下，這層當最後防線確保無論如何都不需要橫向捲動就能用完整按鈕。
+        4: [{ menuId: 'overflowZoomIn', targetId: 'btnZoomIn' }],
+    };
+    const allProxies = Object.values(proxies).flat();
+
+    const { toggle, close } = wireDropdownToggle(trigger, menu, (isOpen) => {
+        if (!isOpen) return;
+        // 每次開選單都重新同步 disabled 狀態，不管是哪一顆代理鈕——真正控制項是否可用
+        // 會隨當下有沒有匯入圖片變動，選單項目要如實反映，不然點了看似可點的項目卻沒反應。
+        allProxies.forEach(({ menuId, targetId }) => { el(menuId).disabled = el(targetId).disabled; });
+    }, { portal: true });
+    trigger.addEventListener('click', toggle);
+
+    for (const { menuId, targetId } of allProxies) {
+        el(menuId).addEventListener('click', () => {
+            el(targetId).click();
+            close();
+            trigger.focus();
+        });
+    }
+
+    // 每次都先全部展開回原始大小再重新量寬度，而不是在既有收合狀態上做增量判斷——
+    // 收合層級只有幾層，重算成本很低，換來的是不管容器寬度怎麼變化（拖拉桿、縮視窗）
+    // 都能收斂到同一個穩定結果，不用擔心增量邏輯漏判某個中間狀態。
+    function applyCollapse() {
+        units.forEach((u) => u.style.removeProperty('display'));
+        allProxies.forEach(({ menuId }) => { el(menuId).hidden = true; });
+        // 先在觸發鈕還藏著的狀態量一次：全部按鈕完整展開、不含「更多工具」鈕本身寬度，
+        // 這樣才放得下的話就完全不用收合，觸發鈕也不用出現——不然觸發鈕一開始就佔位量寬度，
+        // 會白白少算出可以完整顯示的那 40 幾 px，容器明明夠寬也被誤判成需要收合。
+        wrap.hidden = true;
+        if (bar.scrollWidth <= bar.clientWidth) {
+            if (!menu.hidden) close();
+            return;
+        }
+        // 展開後真的放不下，才需要收合，這種情況下「更多工具」鈕勢必得跟著露出來，
+        // 從這裡開始把它的寬度也算進判斷式，收合迴圈才會收到真正夠用為止。
+        wrap.hidden = false;
+        // units 已依 data-collapse-priority 由小到大排序，數字愈小代表愈該優先被收合，
+        // 所以要從陣列開頭（priority 1）往後收，不是從尾端——尾端是數字最大、最後才該收的那層。
+        for (let i = 0; i < units.length && bar.scrollWidth > bar.clientWidth; i++) {
+            const priority = units[i].dataset.collapsePriority;
+            units[i].style.display = 'none';
+            proxies[priority].forEach(({ menuId }) => { el(menuId).hidden = false; });
+        }
+    }
+
+    // 觀察的不是 bar 自己，是它 position:absolute 定位所依據的父層 .pane-canvas-wrap（bar 的
+    // max-width 是 calc(100% - 2rem)，這個 100% 就是量它的寬度）。bar 本身沒有明確 width，收合到
+    // 只剩內容需要的寬度後，即使父層之後變寬，bar 自己的 border-box 也不會再變——因為它已經
+    // 小於新的 max-width 上限，不再被撐開。只盯著 bar 會導致容器變寬後收合狀態永遠無法還原。
+    new ResizeObserver(applyCollapse).observe(bar.parentElement);
+    applyCollapse();
+}
+
 // 畫布內下方置中的浮動工具列：新增物件 + 工具選取 + 縮放。
 // 全螢幕工作區時只有這個工具列還看得到（見 wireFocusMode 註解），所以「新增物件」也放一份在這裡。
 function wireCanvasFloatingToolbar(scanView, statusEl) {
@@ -670,6 +751,7 @@ function wireCanvasFloatingToolbar(scanView, statusEl) {
     wireSelectionModeMenu();
     wireEraserSizeMenu();
     wireToolOptionVisibility();
+    wireToolbarOverflow();
 
     const zoomControl = wireZoomControl(scanView);
     el('btnZoomOut').addEventListener('click', () => scanView.zoomBy(1 / 1.2));
