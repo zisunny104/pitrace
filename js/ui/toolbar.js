@@ -1202,17 +1202,29 @@ function wirePropertiesPanel(statusEl) {
     // 不要每個 wheel 事件都各自觸發一次重繪／自動儲存排程。
     let rotationWheelRaf = null;
     let rotationWheelAccum = 0;
+    let rotationWheelPieceId = null;
     el('rotationValue').addEventListener('wheel', (evt) => {
         evt.preventDefault();
+        const activePiece = store.getActivePiece();
+        if (!activePiece) return;
+        // 累積尚未套用時若切到別的物件（例如觸控板慣性捲動尾段事件還在到達，使用者已經
+        // 點了別的縮圖），之前累積的角度屬於前一個物件，直接歸零重新起算，避免套到新物件上。
+        if (rotationWheelPieceId !== null && rotationWheelPieceId !== activePiece.id) {
+            rotationWheelAccum = 0;
+        }
+        rotationWheelPieceId = activePiece.id;
         const step = evt.shiftKey ? 15 : 1;
         rotationWheelAccum += evt.deltaY < 0 ? step : -step;
         if (rotationWheelRaf != null) return;
         rotationWheelRaf = requestAnimationFrame(() => {
             rotationWheelRaf = null;
             const delta = rotationWheelAccum;
+            const targetPieceId = rotationWheelPieceId;
             rotationWheelAccum = 0;
+            rotationWheelPieceId = null;
             const piece = store.getActivePiece();
-            if (!piece) return;
+            // flush 當下作用中物件已經跟累積角度時不是同一個，這批角度作廢，不套用到別的物件上。
+            if (!piece || piece.id !== targetPieceId) return;
             const dispRotation = piece.rotation > 180 ? piece.rotation - 360 : piece.rotation;
             applyRotation(dispRotation + delta);
         });

@@ -35,7 +35,7 @@ export function createEmptyProject(name = '未命名專案') {
     };
 }
 
-export function createPiece(scanId, overrides = {}) {
+function createPiece(scanId, overrides = {}) {
     return {
         id: makeId('piece'),
         scanId,
@@ -131,6 +131,20 @@ class Store extends EventTarget {
         });
     }
 
+    // undo/redo 只會 emit project-changed（thumbnails.js 靠 id 集合比對決定要不要整批重建，
+    // 內容變更但物件沒增減時不會觸發），縮圖畫面因此停留在還原前的樣子。這裡利用
+    // _reconcilePieces 已經算好的「參照有沒有被換掉」判斷哪些物件內容真的變了，只對那些
+    // 物件補發 piece-changed，讓監聽端（thumbnails.js 的 refreshOne）照舊只重繪真正變過的
+    // 縮圖，沒變的物件不會被殃及。
+    _emitChangedPieces(oldPieces) {
+        const oldById = new Map(oldPieces.map((p) => [p.id, p]));
+        for (const piece of this.project.pieces) {
+            if (oldById.get(piece.id) !== piece) {
+                this.emit('piece-changed', { pieceId: piece.id });
+            }
+        }
+    }
+
     // 立即記一步（新增／刪除作品這類離散動作）：先把任何合併中的連續編輯結清，維持步驟順序。
     _pushHistoryStep() {
         this._flushPendingHistory();
@@ -176,6 +190,7 @@ class Store extends EventTarget {
         if (this._undoStack.length === 0) return false;
         const prev = this._undoStack.pop();
         this._redoStack.push(this._snapshotPieces());
+        const oldPieces = this.project.pieces;
         this.project.pieces = this._reconcilePieces(prev);
         if (!this.project.pieces.find((p) => p.id === this.activePieceId)) {
             this.activePieceId = this.project.pieces[0]?.id ?? null;
@@ -183,6 +198,7 @@ class Store extends EventTarget {
         this.emit('project-changed', {});
         this.emit('active-piece-changed', {});
         this.emit('history-changed', {});
+        this._emitChangedPieces(oldPieces);
         return true;
     }
 
@@ -190,6 +206,7 @@ class Store extends EventTarget {
         if (this._redoStack.length === 0) return false;
         const next = this._redoStack.pop();
         this._undoStack.push(this._snapshotPieces());
+        const oldPieces = this.project.pieces;
         this.project.pieces = this._reconcilePieces(next);
         if (!this.project.pieces.find((p) => p.id === this.activePieceId)) {
             this.activePieceId = this.project.pieces[0]?.id ?? null;
@@ -197,6 +214,7 @@ class Store extends EventTarget {
         this.emit('project-changed', {});
         this.emit('active-piece-changed', {});
         this.emit('history-changed', {});
+        this._emitChangedPieces(oldPieces);
         return true;
     }
 
@@ -423,4 +441,3 @@ class Store extends EventTarget {
 }
 
 export const store = new Store();
-export { makeId };

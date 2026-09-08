@@ -1379,19 +1379,19 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                                 <div class="pane-toolbar-buttons">
                                     <div class="preview-bg-toggle" role="radiogroup" aria-label="預覽底色">
                                         <label class="preview-bg-toggle-item" data-tooltip="棋盤格底">
-                                            <input type="radio" name="previewBg" value="checker" id="previewBg-checker" checked aria-label="棋盤格底">
+                                            <input type="radio" name="previewBg" value="checker" checked aria-label="棋盤格底">
                                             <span class="preview-bg-swatch is-checker" aria-hidden="true"></span>
                                         </label>
                                         <label class="preview-bg-toggle-item" data-tooltip="黑底">
-                                            <input type="radio" name="previewBg" value="black" id="previewBg-black" aria-label="黑底">
+                                            <input type="radio" name="previewBg" value="black" aria-label="黑底">
                                             <span class="preview-bg-swatch is-black" aria-hidden="true"></span>
                                         </label>
                                         <label class="preview-bg-toggle-item" data-tooltip="白底">
-                                            <input type="radio" name="previewBg" value="white" id="previewBg-white" aria-label="白底">
+                                            <input type="radio" name="previewBg" value="white" aria-label="白底">
                                             <span class="preview-bg-swatch is-white" aria-hidden="true"></span>
                                         </label>
                                         <label class="preview-bg-toggle-item" data-tooltip="灰底">
-                                            <input type="radio" name="previewBg" value="gray" id="previewBg-gray" aria-label="灰底">
+                                            <input type="radio" name="previewBg" value="gray" aria-label="灰底">
                                             <span class="preview-bg-swatch is-gray" aria-hidden="true"></span>
                                         </label>
                                     </div>
@@ -1405,25 +1405,25 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                                         <div class="ts-menu is-dense is-small is-separated pane-dropdown-menu" id="previewModeMenu" role="menu"
                                             aria-label="預覽模式" hidden>
                                             <button type="button" class="item" role="menuitemradio" aria-checked="false"
-                                                id="previewMode-original" data-mode="original" data-icon="is-image-icon"
+                                                data-mode="original" data-icon="is-image-icon"
                                                 title="原始掃描顏色，不套用增強或去背">
                                                 <span class="ts-icon is-image-icon" aria-hidden="true"></span>
                                                 <span>原始</span>
                                             </button>
                                             <button type="button" class="item" role="menuitemradio" aria-checked="false"
-                                                id="previewMode-mask" data-mode="mask" data-icon="is-circle-half-stroke-icon"
+                                                data-mode="mask" data-icon="is-circle-half-stroke-icon"
                                                 title="去背遮罩灰階視覺化">
                                                 <span class="ts-icon is-circle-half-stroke-icon" aria-hidden="true"></span>
                                                 <span>遮罩</span>
                                             </button>
                                             <button type="button" class="item" role="menuitemradio" aria-checked="false"
-                                                id="previewMode-overlay" data-mode="overlay" data-icon="is-layer-group-icon"
+                                                data-mode="overlay" data-icon="is-layer-group-icon"
                                                 title="原圖疊加去背範圍標示">
                                                 <span class="ts-icon is-layer-group-icon" aria-hidden="true"></span>
                                                 <span>疊加</span>
                                             </button>
                                             <button type="button" class="item" role="menuitemradio" aria-checked="true"
-                                                id="previewMode-result" data-mode="result" data-icon="is-check-icon"
+                                                data-mode="result" data-icon="is-check-icon"
                                                 title="最終去背合成結果">
                                                 <span class="ts-icon is-check-icon" aria-hidden="true"></span>
                                                 <span>結果</span>
@@ -1551,7 +1551,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                             </div>
 
                             <!-- 橡皮擦：所有筆觸自動合併成單一擦除區域，不逐筆列出，只提供整批清除 -->
-                            <div id="eraseFieldsGroup" class="has-top-spaced">
+                            <div class="has-top-spaced">
                                 <div class="ts-text is-label">橡皮擦</div>
                                 <div id="eraseStrokeStatus" class="ts-text is-description has-top-spaced-small"></div>
                                 <div class="ts-wrap has-top-spaced-small">
