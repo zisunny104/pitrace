@@ -65,10 +65,17 @@ const PIECE_COLOR_PALETTE = [
 ];
 
 // 依物件在專案中的順序自動輪流配色；piece.color 是保留給未來手動自訂顏色的擴充點，目前尚未使用。
+let _colorIndex = null; // Map<pieceId, index>；project-changed 時失效，下次呼叫再重建
+// scan-view.js 每次 draw() 都會對畫面上每個物件呼叫一次；物件一多，每次都重新 indexOf 一次
+// 全陣列會讓逐幀繪製變成 O(n²)。project.pieces 常常用 push/splice 原地變動（陣列參照不變），
+// 不能靠參照比對判斷快取失效，改成訂閱 project-changed（新增/刪除/undo-redo 都會 emit）主動清快取。
 export function getPieceColor(piece) {
     if (piece.color) return piece.color;
-    const idx = store.project.pieces.indexOf(piece);
-    return PIECE_COLOR_PALETTE[(idx < 0 ? 0 : idx) % PIECE_COLOR_PALETTE.length];
+    if (!_colorIndex) {
+        _colorIndex = new Map(store.project.pieces.map((p, i) => [p.id, i]));
+    }
+    const idx = _colorIndex.get(piece.id) ?? 0;
+    return PIECE_COLOR_PALETTE[idx % PIECE_COLOR_PALETTE.length];
 }
 
 const HISTORY_LIMIT = 50;
@@ -136,11 +143,20 @@ class Store extends EventTarget {
     // _reconcilePieces 已經算好的「參照有沒有被換掉」判斷哪些物件內容真的變了，只對那些
     // 物件補發 piece-changed，讓監聽端（thumbnails.js 的 refreshOne）照舊只重繪真正變過的
     // 縮圖，沒變的物件不會被殃及。
+    // fields 一併算出實際變了哪些欄位（比對舊物件同一欄位的值），跟 updatePiece() 的
+    // { fields: Object.keys(patch) } 走同一套契約——不帶 fields 的話，toolbar.js 的
+    // syncPropertiesPanel 會當成「什麼都可能變了」，undo/redo 任何欄位都會誤觸發套索清單整批重建。
+    // 物件是「重新出現」（oldPiece 不存在，例如刪除後 undo）才維持不帶 fields，因為那時就是真的
+    // 什麼都要當成新的處理。
     _emitChangedPieces(oldPieces) {
         const oldById = new Map(oldPieces.map((p) => [p.id, p]));
         for (const piece of this.project.pieces) {
-            if (oldById.get(piece.id) !== piece) {
-                this.emit('piece-changed', { pieceId: piece.id });
+            const oldPiece = oldById.get(piece.id);
+            if (oldPiece !== piece) {
+                const fields = oldPiece
+                    ? Object.keys(piece).filter((key) => piece[key] !== oldPiece[key])
+                    : undefined;
+                this.emit('piece-changed', { pieceId: piece.id, fields });
             }
         }
     }
@@ -441,3 +457,4 @@ class Store extends EventTarget {
 }
 
 export const store = new Store();
+store.addEventListener('project-changed', () => { _colorIndex = null; });
