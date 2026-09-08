@@ -365,7 +365,9 @@ class Store extends EventTarget {
         if (!piece) return;
         this._beginCoalescedEdit();
         Object.assign(piece, patch);
-        this.emit('piece-changed', { pieceId });
+        // fields 讓監聽端（例如 toolbar.js 的 syncPropertiesPanel）可以判斷這次到底改了
+        // 哪些欄位，不用每次都當成「什麼都可能變了」處理。
+        this.emit('piece-changed', { pieceId, fields: Object.keys(patch) });
     }
 
     deletePiece(pieceId) {

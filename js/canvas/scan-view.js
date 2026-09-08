@@ -264,7 +264,9 @@ export class ScanView {
         this.ty = cy - imgY * newScale;
         this.scale = newScale;
         this.onZoomChange?.(this.scale);
-        this.draw();
+        // 觸控板的雙指縮放手勢會轉譯成連續好幾個 wheel 事件，同一畫格內可能呼叫這裡好幾次，
+        // 改用 requestDraw() 讓同一畫格內的多次呼叫合併成一次繪製。
+        this.requestDraw();
     }
 
     zoomTo(scale) {
@@ -292,7 +294,9 @@ export class ScanView {
         }
         this.tx -= evt.deltaX;
         this.ty -= evt.deltaY;
-        this.draw();
+        // 滾輪平移跟 pointermove 拖曳一樣是高頻率事件，改用 requestDraw() 走 rAF 批次繪製，
+        // 不要每個 wheel 事件都各自同步重繪一次。
+        this.requestDraw();
     }
 
     _onPointerDown(evt) {

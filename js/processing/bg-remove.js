@@ -49,17 +49,30 @@ export function computeMask(analysisImageData, sampleColorOriginal, opts) {
     const lo = Math.max(0, threshold - softness);
     const hi = threshold + softness;
     const span = Math.max(1, hi - lo);
+    // 掃描稿背景大面積均勻，多數像素的距離遠低於 lo（背景本身）或遠高於 hi（前景筆畫），
+    // 只有邊緣一小圈真的落在門檻帶內才需要平滑過渡的精確距離——那部分才值得開根號。
+    // 落在帶外時直接用平方距離跟 lo²/hi² 比較就能判定 smooth 是 0 還是 1，省下逐像素的 sqrt。
+    const loSq = lo * lo;
+    const hiSq = hi * hi;
 
     const mask = new Float32Array(n);
     for (let i = 0, p = 0; i < n; i++, p += 4) {
         const dr = data[p] - sr;
         const dg = data[p + 1] - sg;
         const db = data[p + 2] - sb;
-        const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+        const distSq = dr * dr + dg * dg + db * db;
 
-        let t = (dist - lo) / span;
-        t = Math.max(0, Math.min(1, t));
-        const smooth = t * t * (3 - 2 * t); // smoothstep
+        let smooth;
+        if (distSq <= loSq) {
+            smooth = 0;
+        } else if (distSq >= hiSq) {
+            smooth = 1;
+        } else {
+            const dist = Math.sqrt(distSq);
+            let t = (dist - lo) / span;
+            t = Math.max(0, Math.min(1, t));
+            smooth = t * t * (3 - 2 * t); // smoothstep
+        }
         const srcAlpha = data[p + 3] / 255;
         mask[i] = Math.min(srcAlpha, smooth);
     }

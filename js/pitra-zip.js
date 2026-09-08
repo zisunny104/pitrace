@@ -21,7 +21,7 @@ const CRC_TABLE = (() => {
     return table;
 })();
 
-function crc32(bytes) {
+export function crc32(bytes) {
     let crc = 0xFFFFFFFF;
     for (let i = 0; i < bytes.length; i++) {
         crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
@@ -41,10 +41,12 @@ function dosDateTime(date = new Date()) {
  */
 export function zipWrite(entries) {
     const encoder = new TextEncoder();
+    // entry 可以自帶算好的 crc（例如自動儲存時沒變過的掃描圖原始位元組，見 pitra-format.js
+    // 的 scanCrcCache），跳過逐 byte 重新掃過一次整張圖，省下最大宗的重複運算。
     const prepared = entries.map((e) => ({
         nameBytes: encoder.encode(e.name),
         data: e.data,
-        crc: crc32(e.data),
+        crc: e.crc !== undefined ? e.crc : crc32(e.data),
     }));
 
     let localSectionSize = 0;

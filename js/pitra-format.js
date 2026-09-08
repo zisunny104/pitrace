@@ -1,9 +1,24 @@
 // .pitra 專案檔格式：manifest.json + sources/<scanId>.<ext> + pieces/<pieceId>.json
 // 封裝在 pitra-zip.js 手寫的 ZIP（STORED）容器中。Portable 模式：原始圖片位元組原封不動一起打包。
 
-import { zipWrite, zipRead } from './pitra-zip.js';
+import { zipWrite, zipRead, crc32 } from './pitra-zip.js';
 
 export const PITRA_SCHEMA_VERSION = 1;
+
+// 自動儲存每隔 2.5 秒就會把整個專案重新序列化一次，但掃描圖原始位元組往往幾百次自動儲存
+// 都不會變（使用者調的是物件的去背/旋轉參數，不是重新匯入圖片）。用 scan.bytes 這個
+// ArrayBuffer 參考本身當 key 快取 CRC32，同一份位元組只需要逐 byte 算一次，
+// 之後的自動儲存直接複用，省掉這條路徑上最貴的重複運算。
+const scanCrcCache = new WeakMap();
+
+function crc32ForScanBytes(bytes) {
+    let crc = scanCrcCache.get(bytes);
+    if (crc === undefined) {
+        crc = crc32(new Uint8Array(bytes));
+        scanCrcCache.set(bytes, crc);
+    }
+    return crc;
+}
 
 const MIME_EXT = {
     'image/png': '.png',
@@ -76,6 +91,7 @@ export function serializeProject(project) {
         entries.push({
             name: `sources/${scan.id}${extFromMime(scan.mime)}`,
             data: new Uint8Array(scan.bytes),
+            crc: crc32ForScanBytes(scan.bytes),
         });
     }
     for (const piece of project.pieces) {

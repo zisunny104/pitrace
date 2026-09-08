@@ -82,7 +82,17 @@ store.addEventListener('project-changed', () => {
     for (const id of geometryCache.keys()) {
         if (!validIds.has(id)) geometryCache.delete(id);
     }
+    for (const id of maskCache.keys()) {
+        if (!validIds.has(id)) maskCache.delete(id);
+    }
 });
+
+// piece.id -> 最近一次算好的去背遮罩（含去除雜點／增強筆畫後製）。縮圖清單（thumbnails.js）
+// 跟右側即時預覽（PreviewPane）各自監聽同一個 piece-changed 事件、各自呼叫 renderPiece()，
+// 兩者用的都是同一份 geometryCache 命中的 originalImageData、同一組 bgRemoval 參數，
+// 沒有這層快取的話同一次變動會重算兩次逐像素的 computeMask（含 connectivityScore 的
+// flood fill／dilateMask 的膨脹），快取後兩邊共用同一份算好的結果。
+const maskCache = new Map();
 
 /**
  * 幾何處理管線（裁切／套索遮罩 → 橡皮擦擦除 → 旋轉 → 降採樣），跟顏色無關，
@@ -194,16 +204,37 @@ async function renderGeometry(piece, opts = {}) {
  */
 function computeMaskForPiece(piece, originalImageData) {
     if (!piece.bgRemoval?.enabled) return null;
-    let mask = computeMask(originalImageData, piece.bgRemoval.sampleColor, {
-        strength: piece.bgRemoval.strength,
-        threshold: piece.bgRemoval.threshold,
-        softness: piece.bgRemoval.softness,
+    const bg = piece.bgRemoval;
+    const despeckle = bg.despeckle ?? 0;
+    const strokeEnhance = bg.strokeEnhance ?? 0;
+
+    // 呼叫端沒有人會就地修改回傳的 mask（只讀），同一個 originalImageData＋同一組去背參數
+    // 就一定算出同一份結果，可以放心把陣列參考借給多個呼叫端共用，不用各自複製一份。
+    const cached = maskCache.get(piece.id);
+    if (
+        cached &&
+        cached.originalImageData === originalImageData &&
+        cached.sampleColor.r === bg.sampleColor.r &&
+        cached.sampleColor.g === bg.sampleColor.g &&
+        cached.sampleColor.b === bg.sampleColor.b &&
+        cached.strength === bg.strength &&
+        cached.threshold === bg.threshold &&
+        cached.softness === bg.softness &&
+        cached.despeckle === despeckle &&
+        cached.strokeEnhance === strokeEnhance
+    ) {
+        return cached.mask;
+    }
+
+    let mask = computeMask(originalImageData, bg.sampleColor, {
+        strength: bg.strength,
+        threshold: bg.threshold,
+        softness: bg.softness,
     });
     const { width, height } = originalImageData;
 
     // 去除雜點：先濾掉跟主筆畫不相連的小雜點，兩個滑桿的映射公式跟先前 isolationSuppress
     // 一致（面積比例平方，越調越只挑最小的雜點下手）。0 完全不處理（向後相容既有輸出）。
-    const despeckle = piece.bgRemoval.despeckle ?? 0;
     if (despeckle > 0) {
         const minAreaFraction = (despeckle / 100) ** 2 * 0.0009;
         const score = connectivityScore(mask, width, height, { minAreaFraction });
@@ -212,12 +243,21 @@ function computeMaskForPiece(piece, originalImageData) {
 
     // 增強筆畫在去除雜點「之後」執行：先清掉小雜點，再膨脹存活下來的筆畫，避免把原本
     // 該被濾掉的雜點跟主筆畫黏在一起而躲過過濾。
-    const strokeEnhance = piece.bgRemoval.strokeEnhance ?? 0;
     if (strokeEnhance > 0) {
         const radius = Math.round((strokeEnhance / 100) * 4);
         if (radius > 0) mask = dilateMask(mask, width, height, radius);
     }
 
+    maskCache.set(piece.id, {
+        originalImageData,
+        sampleColor: { ...bg.sampleColor },
+        strength: bg.strength,
+        threshold: bg.threshold,
+        softness: bg.softness,
+        despeckle,
+        strokeEnhance,
+        mask,
+    });
     return mask;
 }
 

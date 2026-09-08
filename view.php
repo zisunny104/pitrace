@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html id="html" lang="zh-tw">
+<html lang="zh-tw">
 
 <?php
 // 計算此應用展開後的 URL 基準路徑（例： /koilisu/apps/pitrace）

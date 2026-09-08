@@ -126,22 +126,36 @@ function simplifyRing(points, tolerance) {
         return Math.hypot(p[0] - px, p[1] - py);
     }
 
+    // 用顯式堆疊改寫遞迴版 RDP：密集像素網格的輪廓點數可能上千，遞迴版每層都對陣列切片再串接、
+    // call stack 深度也跟著點數走，兩者都不是常數量級。這裡直接在原始 pts 上用索引區間切割，
+    // 只在最後一次性收集保留的點，不用逐層配置新陣列，也不會有呼叫堆疊爆掉的風險。
     function rdp(pts) {
-        if (pts.length <= 2) return pts;
-        let maxDist = -1;
-        let idx = -1;
-        const a = pts[0];
-        const b = pts[pts.length - 1];
-        for (let i = 1; i < pts.length - 1; i++) {
-            const d = perpDist(pts[i], a, b);
-            if (d > maxDist) { maxDist = d; idx = i; }
+        const n = pts.length;
+        if (n <= 2) return pts;
+        const keep = new Uint8Array(n);
+        keep[0] = 1;
+        keep[n - 1] = 1;
+        const stack = [[0, n - 1]];
+        while (stack.length) {
+            const [start, end] = stack.pop();
+            const a = pts[start];
+            const b = pts[end];
+            let maxDist = -1;
+            let idx = -1;
+            for (let i = start + 1; i < end; i++) {
+                const d = perpDist(pts[i], a, b);
+                if (d > maxDist) { maxDist = d; idx = i; }
+            }
+            if (maxDist > tolerance) {
+                keep[idx] = 1;
+                stack.push([start, idx], [idx, end]);
+            }
         }
-        if (maxDist > tolerance) {
-            const left = rdp(pts.slice(0, idx + 1));
-            const right = rdp(pts.slice(idx));
-            return left.slice(0, -1).concat(right);
+        const result = [];
+        for (let i = 0; i < n; i++) {
+            if (keep[i]) result.push(pts[i]);
         }
-        return [a, b];
+        return result;
     }
 
     // 封閉輪廓沒有天然的頭尾，從中點斷開成兩段跑 RDP 再接回去，避免起點正好在長邊中間被整段拉直。

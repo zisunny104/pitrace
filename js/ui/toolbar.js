@@ -298,7 +298,7 @@ export function wireUI({ scanView, statusEl }) {
     wirePreviewMode();
 
     store.addEventListener('active-piece-changed', () => syncPropertiesPanel(statusEl));
-    store.addEventListener('piece-changed', () => syncPropertiesPanel(statusEl));
+    store.addEventListener('piece-changed', (e) => syncPropertiesPanel(statusEl, e.detail?.fields));
     syncPropertiesPanel(statusEl);
 }
 
@@ -720,9 +720,32 @@ function wireToolbarOverflow() {
         // 展開後真的放不下，才需要收合，這種情況下「更多工具」鈕勢必得跟著露出來，
         // 從這裡開始把它的寬度也算進判斷式，收合迴圈才會收到真正夠用為止。
         wrap.hidden = false;
+
         // units 已依 data-collapse-priority 由小到大排序，數字愈小代表愈該優先被收合，
         // 所以要從陣列開頭（priority 1）往後收，不是從尾端——尾端是數字最大、最後才該收的那層。
-        for (let i = 0; i < units.length && bar.scrollWidth > bar.clientWidth; i++) {
+        //
+        // 量測階段：先把目前的溢出量、每顆候選按鈕的寬度全部讀完（純讀取，中間不穿插任何
+        // style 寫入），瀏覽器可以一次算完這些 layout 值；用累加寬度估算要收到第幾顆才夠，
+        // 而不是原本「收一顆、量一次 scrollWidth」的寫法——那種讀寫交錯每一顆都會逼出一次
+        // 同步 reflow。
+        let overflow = bar.scrollWidth - bar.clientWidth;
+        const gap = parseFloat(getComputedStyle(bar).columnGap) || 0;
+        let collapseCount = 0;
+        for (let i = 0; i < units.length && overflow > 0; i++) {
+            overflow -= units[i].getBoundingClientRect().width + gap;
+            collapseCount = i + 1;
+        }
+
+        // 寫入階段：一次把估算出需要收合的按鈕全部設成 display:none，中間不再穿插寬度讀取。
+        for (let i = 0; i < collapseCount; i++) {
+            const priority = units[i].dataset.collapsePriority;
+            units[i].style.display = 'none';
+            proxies[priority].forEach(({ menuId }) => { el(menuId).hidden = false; });
+        }
+
+        // 保險：寬度估算沒算到的邊界效應（subpixel 捨入等）導致還是放不下，才退回逐顆收合＋
+        // 重新量測——這是罕見的補漏路徑，不是常態執行路徑，一般情況下面這個迴圈不會跑。
+        for (let i = collapseCount; i < units.length && bar.scrollWidth > bar.clientWidth; i++) {
             const priority = units[i].dataset.collapsePriority;
             units[i].style.display = 'none';
             proxies[priority].forEach(({ menuId }) => { el(menuId).hidden = false; });
@@ -1174,9 +1197,25 @@ function wirePropertiesPanel(statusEl) {
     el('btnRotateMinus').addEventListener('click', (evt) => nudgeRotation(-1, evt));
     el('btnRotatePlus').addEventListener('click', (evt) => nudgeRotation(1, evt));
     // passive:false 是能呼叫 preventDefault() 阻止頁面隨滾輪捲動的必要條件。
+    // 觸控板／高輪詢率滑鼠的 wheel 事件觸發頻率遠高於畫面更新頻率，比照 bindRangeNumberPair
+    // 用 rAF 節流：同一畫格內的多次滾動先加總角度，到了才套用一次 updatePiece，
+    // 不要每個 wheel 事件都各自觸發一次重繪／自動儲存排程。
+    let rotationWheelRaf = null;
+    let rotationWheelAccum = 0;
     el('rotationValue').addEventListener('wheel', (evt) => {
         evt.preventDefault();
-        nudgeRotation(evt.deltaY < 0 ? 1 : -1, evt);
+        const step = evt.shiftKey ? 15 : 1;
+        rotationWheelAccum += evt.deltaY < 0 ? step : -step;
+        if (rotationWheelRaf != null) return;
+        rotationWheelRaf = requestAnimationFrame(() => {
+            rotationWheelRaf = null;
+            const delta = rotationWheelAccum;
+            rotationWheelAccum = 0;
+            const piece = store.getActivePiece();
+            if (!piece) return;
+            const dispRotation = piece.rotation > 180 ? piece.rotation - 360 : piece.rotation;
+            applyRotation(dispRotation + delta);
+        });
     }, { passive: false });
 
     function commitPieceName(rawValue) {
@@ -1418,7 +1457,7 @@ function syncBgStrengthDisabledState(bgRemovalEnabled) {
     el('bgStrokeEnhanceValue').disabled = disabled;
 }
 
-function syncPropertiesPanel(statusEl) {
+function syncPropertiesPanel(statusEl, fields) {
     const piece = store.getActivePiece();
     const emptyEl = el('propertiesEmptyState');
     if (!piece) {
@@ -1448,7 +1487,14 @@ function syncPropertiesPanel(statusEl) {
         el('selW').value = r ? Math.round(r.w) : '';
         el('selH').value = r ? Math.round(r.h) : '';
     } else {
-        renderLassoLoopList(el('lassoLoopList'), piece, statusEl);
+        // renderLassoLoopList 會整批 innerHTML='' 重建清單 DOM。piece-changed 不是只有選取範圍變動
+        // 才會觸發（拖動去背強度／旋轉數值等滑桿也會經由 updatePiece 一路發到這裡），
+        // fields 未提供時（active-piece-changed／初次渲染）視為「什麼都可能變了」整批重建，
+        // 其餘情況只有 fields 真的包含 selection 才需要重建，避免跟選取範圍無關的欄位變動
+        // 也把整份套索清單砍掉重蓋一次。
+        if (!fields || fields.includes('selection')) {
+            renderLassoLoopList(el('lassoLoopList'), piece, statusEl);
+        }
         el('btnClearLasso').disabled = !piece.selection.loops?.length;
         el('btnFlattenLasso').disabled = (piece.selection.loops?.length ?? 0) <= 1;
     }

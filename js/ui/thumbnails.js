@@ -10,11 +10,22 @@ export class ThumbnailStrip {
     constructor(listEl, statusEl) {
         this.listEl = listEl;
         this.statusEl = statusEl;
+        this._lastPieceIds = null;
 
-        store.addEventListener('project-changed', () => this.refresh());
+        store.addEventListener('project-changed', () => this._onProjectChanged());
         store.addEventListener('active-piece-changed', () => this.syncActive());
         store.addEventListener('piece-changed', (e) => this.refreshOne(e.detail.pieceId));
 
+        this.refresh();
+    }
+
+    // project-changed 不是只有新增/刪除物件才會觸發——重新命名掃描圖、校正 DPI、匯入新掃描圖
+    // （state.js 的 renameScan／setScanDpi／addScan）都跟現有物件清單完全無關，卻也會 emit
+    // 這個事件。只有物件的 id 或順序真的變了才需要整批重建 DOM，其餘情況略過，
+    // 避免物件一多時，改個檔名就讓所有縮圖重新跑一次去背運算。
+    _onProjectChanged() {
+        const ids = store.project.pieces.map((p) => p.id).join(',');
+        if (ids === this._lastPieceIds) return;
         this.refresh();
     }
 
@@ -77,6 +88,7 @@ export class ThumbnailStrip {
 
     refresh() {
         const pieces = store.project.pieces;
+        this._lastPieceIds = pieces.map((p) => p.id).join(',');
         this.listEl.innerHTML = '';
 
         if (!pieces.length) {
