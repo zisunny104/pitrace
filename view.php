@@ -419,6 +419,11 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         cursor: none;
     }
 
+    /* 滴管游標：熱點對齊圖示尖端（滴管實際取樣的像素位置），不是圖示中心。 */
+    #scanCanvas.cursor-eyedropper {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='25' y1='7' x2='12' y2='20'/%3E%3Cline x1='12' y1='20' x2='7' y2='25'/%3E%3C/g%3E%3Cg stroke='%23fff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='25' y1='7' x2='12' y2='20'/%3E%3Cline x1='12' y1='20' x2='7' y2='25'/%3E%3C/g%3E%3Ccircle cx='25' cy='7' r='5' fill='%23f97316' stroke='%23fff' stroke-width='1.5'/%3E%3Ccircle cx='7' cy='25' r='1.8' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 7 25, crosshair;
+    }
+
     #scanCanvas.cursor-pan,
     #scanCanvas.is-pan-armed {
         cursor: grab;

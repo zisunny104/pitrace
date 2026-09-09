@@ -44,7 +44,7 @@ const TOOL_FACTORIES = {
 // view.php 的 CSS。橡皮擦不在這裡處理：它改用 cursor:none + drawOverlay 畫出實際縮放比例下
 // 的筆刷圓圈，因為 CSS cursor 圖片是螢幕固定尺寸，沒辦法反映「這個半徑在目前縮放下涵蓋多少
 // 影像範圍」。
-const CURSOR_CLASSES = ['cursor-crosshair', 'cursor-select-add', 'cursor-select-subtract', 'cursor-eraser', 'cursor-pan'];
+const CURSOR_CLASSES = ['cursor-crosshair', 'cursor-select-add', 'cursor-select-subtract', 'cursor-eraser', 'cursor-pan', 'cursor-eyedropper'];
 
 export class ScanView {
     constructor(canvas, statusEl, onZoomChange) {
@@ -185,6 +185,9 @@ export class ScanView {
                 break;
             case 'pan':
                 this.canvas.classList.add('cursor-pan');
+                break;
+            case 'eyedropper':
+                this.canvas.classList.add('cursor-eyedropper');
                 break;
             default:
                 this.canvas.classList.add('cursor-crosshair');

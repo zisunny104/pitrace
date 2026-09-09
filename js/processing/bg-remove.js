@@ -147,6 +147,12 @@ export function sampleBorderColor(imageData) {
 
 /** 取樣背景色工具：在原始掃描畫布上點一下，把該像素顏色設為目前作品的背景取樣色。 */
 export class EyedropperTool {
+    constructor() {
+        this.hoverColor = null; // { r, g, b }，滑鼠底下目前的顏色，還沒點下去前的即時預覽
+        this.hoverClient = null; // { x, y }，相對畫布左上角的 CSS px 座標，drawOverlay 用螢幕座標畫色塊
+        this._sampleCtx = null; // 重複使用同一個 1x1 canvas context，pointermove 頻率高不能每次都新配置
+    }
+
     async onPointerDown(imgPt, evt, view) {
         const piece = store.getActivePiece();
         if (!piece) return view.announce('請先選取物件');
@@ -167,6 +173,81 @@ export class EyedropperTool {
         view.announce(`背景取樣色已設定為 RGB ${r}, ${g}, ${b}`);
     }
 
-    drawOverlay() {}
-    onCancel() {}
+    // 即時預覽（還沒點下去）：直接用 view.bitmap（畫面上正顯示的掃描圖，一定是已經 decode 好、
+    // 同步可用的），不再另外呼叫 store.getScanBitmap() ——那個是 async，pointermove 這麼高頻的
+    // 事件每次都 await 一次沒有必要，也會讓預覽色塊比游標慢半拍才更新。
+    onPointerMove(imgPt, evt, view) {
+        const bitmap = view.bitmap;
+        const x = Math.round(imgPt.x);
+        const y = Math.round(imgPt.y);
+        if (!bitmap || bitmap.width === 0 || x < 0 || y < 0 || x >= bitmap.width || y >= bitmap.height) {
+            this.hoverColor = null;
+            this.hoverClient = null;
+            view.requestDraw();
+            return;
+        }
+
+        this._sampleCtx ??= new OffscreenCanvas(1, 1).getContext('2d', { willReadFrequently: true });
+        this._sampleCtx.clearRect(0, 0, 1, 1);
+        this._sampleCtx.drawImage(bitmap, x, y, 1, 1, 0, 0, 1, 1);
+        const [r, g, b] = this._sampleCtx.getImageData(0, 0, 1, 1).data;
+        this.hoverColor = { r, g, b };
+        const rect = view.canvas.getBoundingClientRect();
+        this.hoverClient = { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+        view.requestDraw();
+    }
+
+    // 螢幕空間畫一個跟著游標走的顏色色塊＋RGB 數值：drawOverlay 拿到的 ctx 在呼叫當下已經是
+    // CSS px 座標系（scan-view.js 的 draw() 在呼叫這裡之前只設定 dpr 縮放，沒有套用平移/縮放），
+    // 跟 hoverClient（同樣用 getBoundingClientRect 換算）單位一致，不用再疊加 view.tx/scale。
+    drawOverlay(ctx, view) {
+        if (!this.hoverColor || !this.hoverClient) return;
+        const { r, g, b } = this.hoverColor;
+        const swatchSize = 20;
+        const gap = 16;
+        const padding = 6;
+        const rgbText = `${r}, ${g}, ${b}`;
+
+        ctx.save();
+        ctx.font = '12px system-ui, sans-serif';
+        const textWidth = ctx.measureText(rgbText).width;
+        const boxW = padding * 3 + swatchSize + textWidth;
+        const boxH = padding * 2 + swatchSize;
+        let boxX = this.hoverClient.x + gap;
+        let boxY = this.hoverClient.y + gap;
+        const rect = view.canvas.getBoundingClientRect();
+        if (boxX + boxW > rect.width) boxX = this.hoverClient.x - gap - boxW;
+        if (boxY + boxH > rect.height) boxY = this.hoverClient.y - gap - boxH;
+
+        ctx.fillStyle = 'rgba(17, 17, 17, 0.85)';
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxW, boxH, 6);
+        ctx.fill();
+
+        const swatchX = boxX + padding;
+        const swatchY = boxY + padding;
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.beginPath();
+        ctx.roundRect(swatchX, swatchY, swatchSize, swatchSize, 4);
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(rgbText, swatchX + swatchSize + padding, boxY + boxH / 2);
+        ctx.restore();
+    }
+
+    onPointerLeave(view) {
+        this.hoverColor = null;
+        this.hoverClient = null;
+        view.draw();
+    }
+
+    onCancel(view) {
+        this.hoverColor = null;
+        this.hoverClient = null;
+    }
 }
