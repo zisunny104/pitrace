@@ -509,6 +509,7 @@ export class ScanView {
         // loadActiveScan() 換上新 bitmap 之前搶先觸發 draw()，這裡擋掉避免對已關閉的來源呼叫
         // drawImage 拋出 InvalidStateError。
         if (this.bitmap && this.bitmap.width > 0) {
+            this._drawGrid(ctx, rect);
             ctx.save();
             ctx.translate(this.tx, this.ty);
             ctx.scale(this.scale, this.scale);
@@ -520,6 +521,67 @@ export class ScanView {
         if (this.emptyStateEl) this.emptyStateEl.style.display = this.bitmap || this._loadToken ? 'none' : '';
 
         this._currentTool()?.drawOverlay?.(ctx, this);
+    }
+
+    // 工作區底色網格：畫在掃描圖底下（跟 Figma/Illustrator 的畫布網格一樣，內容會蓋住底下的點），
+    // 用來讓使用者光靠數格點就能抓到目前畫面代表的實際大小，不用另外量。
+    // 有 dpi 時以「公厘」為底：dpi/25.4 換算成每公厘幾個影像像素；沒有 dpi 時退回「無單位的
+    // 純像素格線」，跟 exportPieceSVG() 在沒有 dpi 時直接輸出純像素數字、不宣告單位是同一套
+    // 邏輯（見 preview-pane.js），這樣至少在製作時還是有個相對大小的參考依據。
+    // 格線間距用 1-2-5 進位挑「好數字」，並依目前縮放挑一個螢幕間距不會太擠的級距——這樣縮小
+    // 時級距會自動放大（例如從 1cm 跳到 5cm），放大到夠開時才會多顯示一層更細的次網格，兩層
+    // 都不會因為縮放而擠成一團。
+    _drawGrid(ctx, rect) {
+        const scan = store.project.scans.find((s) => s.id === store.activeScanId);
+        const imagePxPerUnit = scan?.dpi ? scan.dpi / 25.4 : 1;
+
+        const NICE_STEPS = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
+        const MIN_MAJOR_SPACING = 44; // 主格點螢幕間距下限（px）
+        const MIN_MINOR_SPACING = 14; // 次格點螢幕間距下限（px），低於這個值就先不畫次網格
+
+        let majorStep = NICE_STEPS[NICE_STEPS.length - 1];
+        for (const step of NICE_STEPS) {
+            if (step * imagePxPerUnit * this.scale >= MIN_MAJOR_SPACING) {
+                majorStep = step;
+                break;
+            }
+        }
+        // 次網格切幾份跟主格點的「首位數字」有關，這樣才能得到乾淨的數字（1→5 份＝每份 20%；
+        // 2→4 份，例如 20 分成 4 份＝5；5→5 份，例如 50 分成 5 份＝10）。
+        const leadDigit = Math.round(majorStep / 10 ** Math.floor(Math.log10(majorStep)));
+        const minorStep = majorStep / (leadDigit === 2 ? 4 : 5);
+
+        const majorStepPx = majorStep * imagePxPerUnit;
+        const minorStepPx = minorStep * imagePxPerUnit;
+
+        const imgLeft = (0 - this.tx) / this.scale;
+        const imgTop = (0 - this.ty) / this.scale;
+        const imgRight = (rect.width - this.tx) / this.scale;
+        const imgBottom = (rect.height - this.ty) / this.scale;
+
+        if (minorStepPx * this.scale >= MIN_MINOR_SPACING) {
+            this._drawGridDots(ctx, minorStepPx, imgLeft, imgTop, imgRight, imgBottom, 1, 'rgba(255,255,255,0.15)');
+        }
+        this._drawGridDots(ctx, majorStepPx, imgLeft, imgTop, imgRight, imgBottom, 1.6, 'rgba(255,255,255,0.35)');
+    }
+
+    _drawGridDots(ctx, stepPx, imgLeft, imgTop, imgRight, imgBottom, radius, color) {
+        if (stepPx <= 0) return;
+        const i0 = Math.floor(imgLeft / stepPx);
+        const i1 = Math.ceil(imgRight / stepPx);
+        const j0 = Math.floor(imgTop / stepPx);
+        const j1 = Math.ceil(imgBottom / stepPx);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        for (let j = j0; j <= j1; j++) {
+            const y = j * stepPx * this.scale + this.ty;
+            for (let i = i0; i <= i1; i++) {
+                const x = i * stepPx * this.scale + this.tx;
+                ctx.moveTo(x + radius, y);
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+            }
+        }
+        ctx.fill();
     }
 
     _drawSelections(ctx) {
