@@ -402,7 +402,9 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
        橡皮擦改用 cursor:none，實際筆刷範圍改由 canvas 疊圖即時畫出（見 eraser.js drawOverlay），
        因為 CSS 游標圖是螢幕固定尺寸，沒辦法反映縮放後筆刷實際涵蓋的影像範圍；
        平移游標（cursor-pan / is-pan-armed）也同時涵蓋滑鼠中鍵按住拖曳的情況（見 scan-view.js
-       _onPointerDown 的 evt.button === 1 分支）。 */
+       _onPointerDown 的 evt.button === 1 分支）；is-panning 額外區分「正在拖曳中」（握拳）跟
+       is-pan-armed 的「準備好但還沒按下」（張手），由 PanTool 在 onPointerDown/Up 加減，三種
+       平移情境（平移工具／空白鍵／中鍵）共用同一個 PanTool 實例所以自動一致。 */
     #scanCanvas.cursor-crosshair {
         cursor: crosshair;
     }
@@ -427,6 +429,10 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
     #scanCanvas.cursor-pan,
     #scanCanvas.is-pan-armed {
         cursor: grab;
+    }
+
+    #scanCanvas.is-panning {
+        cursor: grabbing;
     }
 
     /* 畫布內下方置中的浮動工具列（工具選取＋縮放）。比照 focus-mode 舊有浮動列的 pill 樣式。 */

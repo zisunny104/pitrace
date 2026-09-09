@@ -11,8 +11,11 @@ import { buildSelectionMask } from './selection-mask.js';
 import { mergedLoopOutline, loopsFromSelection } from './selection-geometry.js';
 
 class PanTool {
+    // is-panning 只在「真的按著拖曳中」才加上（跟 is-pan-armed 分開：armed 是準備好但還沒按下），
+    // 對應 view.php 的 cursor:grabbing，讓握拳／張手兩種游標分別反映拖曳中／準備拖曳兩種狀態。
     onPointerDown(imgPt, evt, view) {
         view._panStart = { x: evt.clientX, y: evt.clientY, tx: view.tx, ty: view.ty };
+        view.canvas.classList.add('is-panning');
     }
 
     onPointerMove(imgPt, evt, view) {
@@ -24,11 +27,13 @@ class PanTool {
 
     onPointerUp(imgPt, evt, view) {
         view._panStart = null;
+        view.canvas.classList.remove('is-panning');
     }
 
     drawOverlay() {}
     onCancel(view) {
         view._panStart = null;
+        view.canvas.classList.remove('is-panning');
     }
 }
 
