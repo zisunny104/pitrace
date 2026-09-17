@@ -1073,7 +1073,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
     <a href="#main-content" class="skip-link">跳到主要內容</a>
 
     <div class="main-content">
-        <div class="ts-container has-vertically-padded" id="pageContainer">
+        <div class="ts-container" id="pageContainer">
 
             <!-- 標題 -->
             <div class="ts-grid is-middle-aligned">
