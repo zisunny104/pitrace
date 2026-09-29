@@ -49,7 +49,7 @@ git clone https://github.com/zisunny104/pitrace.git
 cd pitrace
 ```
 
-2. 配置網頁伺服器
+2. 設定網頁伺服器
 
 3. 直接訪問 `index.php`
 
