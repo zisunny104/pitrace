@@ -23,7 +23,7 @@
 
 ## 使用方式
 
-1. **匯入掃描**：點擊「匯入」選擇 PNG／JPEG／WebP 檔案
+1. **匯入掃描**：點擊「匯入」選擇 PNG／JPEG／WebP 或 PDF 檔案（PDF 每頁以 600 DPI 渲染成一張掃描圖）
 2. **新增作品**：點擊「新增作品」，在左側掃描畫布上用矩形或套索框出一件作品
 3. **調整**：視需要旋轉、微調選取範圍座標、取樣或手動輸入去背背景色，並用「去背強度」滑桿微調
 4. **確認**：右側「即時預覽」窗格會即時顯示去背後的透明結果
@@ -72,16 +72,16 @@ cd pitrace
 此版本為可完整操作的雛型，以下項目列為後續階段：
 
 - 自動偵測掃描中的候選作品（連通元件／輪廓分析），目前僅支援手動框選
-- HEIC／TIFF 匯入、WebP／TIFF 輸出（目前支援 PNG／JPEG／WebP 匯入、PNG 輸出）
+- HEIC／TIFF 匯入、WebP／TIFF 輸出（目前支援 PNG／JPEG／WebP／PDF 匯入、PNG 輸出）
 - 批次處理、Auto Save、Linked Project（僅存路徑參照，不封裝原圖）模式
 - AI 輔助分割／matting
 - SVG 輸出已支援貝茲曲線平滑化（轉角保留）與 mm 實體單位；DPI 自動從 PNG `pHYs` chunk／JPEG JFIF density 讀取，偵測不到時可在向量預覽面板手動填
-- PDF 掃描檔匯入尚未支援（僅 PNG／JPEG／WebP 點陣圖），未來若加入可提供比點陣 metadata 更精確的 DPI 來源
 - 去背運算目前於主執行緒同步進行，Web Worker／OffscreenCanvas 背景運算等效能架構留待下一階段
 
 ## 使用的開源函式庫
 
 - [Tocas UI](https://tocas-ui.com/) - MIT License
+- [pdf.js](https://github.com/mozilla/pdf.js) - Apache-2.0 License，僅在匯入 PDF 時才透過 CDN 動態載入
 - [Tesseract.js](https://github.com/naptha/tesseract.js) - Apache-2.0 License，僅在使用者按下「OCR 名稱建議」鈕時才透過 CDN 動態載入，純瀏覽器端 WASM 執行、不上傳圖片
 
 `.pitra` 專案檔的 ZIP 讀寫、去背估算等核心邏輯皆為原生實作。
