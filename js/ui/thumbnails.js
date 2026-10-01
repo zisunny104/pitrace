@@ -72,6 +72,11 @@ export class ThumbnailStrip {
         if (oldVisual) oldVisual.replaceWith(placeholder);
         else btn.insertBefore(placeholder, btn.firstChild);
 
+        this._paintThumb(piece, placeholder);
+    }
+
+    // refresh() 新建縮圖、refreshOne() 單一物件換圖共用的去背渲染＋畫進 canvas 邏輯。
+    _paintThumb(piece, placeholder) {
         renderPiece(piece, { maxDim: thumbMaxDim }).then((rendered) => {
             if (!placeholder.isConnected) return;
             if (!rendered) {
@@ -164,18 +169,7 @@ export class ThumbnailStrip {
 
             this.listEl.appendChild(item);
 
-            renderPiece(piece, { maxDim: thumbMaxDim }).then((rendered) => {
-                if (!placeholder.isConnected) return;
-                if (!rendered) {
-                    placeholder.classList.remove('skeleton');
-                    return;
-                }
-                const canvas = document.createElement('canvas');
-                canvas.width = rendered.width;
-                canvas.height = rendered.height;
-                canvas.getContext('2d').drawImage(rendered, 0, 0);
-                placeholder.replaceWith(canvas);
-            });
+            this._paintThumb(piece, placeholder);
         }
     }
 }
