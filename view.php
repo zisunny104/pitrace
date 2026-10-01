@@ -30,8 +30,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         min-height: 0;
     }
 
-    /* 內容區採 flex 直向撐滿可用視窗高度，避免視窗夠高時工作區底下留白、或視窗偏矮時底部列被切一截；
-       只有編輯器主體（.editor-shell）真正吃掉剩餘空間，其餘列（工具列）維持自身高度。 */
+    /* 頁首／內容區共用的排列骨架，間距各自歸屬頁首與內容區自己。 */
     #pageContainer {
         flex: 1;
         display: flex;
@@ -39,14 +38,13 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         min-height: 0;
     }
 
-    /* 分隔線＋main 包成同一個 flex 子項：預設（非寬版）跟直接把兩者當 #pageContainer
-       的手足擺著效果一樣，只是多包一層；寬版模式要把 100vh 錨點下移時（見下方 media
-       query）才用得到這層，讓分隔線能跟著 main 一起被鎖進同一個 100vh 區塊。 */
+    /* 分隔線與內容區包成一組，寬版模式才需要；底部留白歸內容區自己。 */
     #mainAnchor {
         flex: 1;
         display: flex;
         flex-direction: column;
         min-height: 0;
+        padding-bottom: 1.5rem;
     }
 
     main#main-content {
@@ -61,11 +59,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         --pitrace-list-width: 200px;
     }
 
-    /* 編輯器主體（左側物件清單 + 中央畫布 + 右側預覽／設定 dock）。
-       Mobile/Tablet（<1024px）：單欄堆疊，維持整頁捲動的今日行為，DOM 順序＝畫布→物件清單→dock。
-       Desktop+（≥1024px）：三欄並排，左右兩欄固定寬度、中央畫布吃滿剩餘空間；
-       用 order 把左欄視覺移到最前面，不用改 DOM 順序（維持手機堆疊時「先看畫布」的順序）。
-       右側 dock 內部兩個面板（物件預覽／物件設定）各自捲動，不需要捲動整頁。 */
+    /* 編輯器主體：手機/平板單欄堆疊，桌面以上三欄並排。 */
     .editor-shell {
         flex: 1;
         display: flex;
@@ -95,27 +89,13 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
     }
 
     @media (min-width: 1024px) {
-        /* 頁尾是 .main-content 的 flex 手足、同樣掛在 body 底下——如果把 100vh 鎖在 body 上，
-           兩者會競爬同一個高度，頁尾沒辦法被推到視窗外。改鎖在 .main-content 自己身上：
-           body 恢復自然高度，頁尾落在 .main-content 之後正常往下排、要捲動才看得到；
-           .main-content 內部既有的 flex 收縮鏈（min-height:0 一路往下）依然有這個有界高度可以依據，
-           dock 面板的 overflow-y:auto 不受影響。
-           注意：基礎規則的 flex:1（flex-basis:0%）會讓 flex-grow 演算法接管高度、蓋掉 height，
-           變成「內容多高就長多高」——跟原本錨在 body 上時同一種失效模式。這裡要连同 flex 一起覆寫成
-           flex:none，讓 height:100vh 以一般區塊盒模型生效，不再被 flex-grow 決定。 */
+        /* 寬版模式下把 100vh 錨點鎖在這層，讓頁尾可以被捲動到視窗外。 */
         .main-content {
             flex: none;
             height: 100vh;
         }
 
-        /* 寬版模式：把固定 100vh 的錨點再往下移一層到 #mainAnchor（分隔線＋main 的外層），
-           讓標題區塊跟頁尾一樣「需要捲動才看得到」——.main-content／#pageContainer
-           改回依內容自然撐高（標題的高度 + #mainAnchor 的 100vh），總高度超出一個視窗，
-           body 因此變高、可捲動，原理跟上面頁尾能被捲到完全一樣，只是這次換成標題。
-           錨點刻意落在 #mainAnchor 而非 main 本身：捲動切換寬版時分隔線會露在畫面最上緣，
-           專案操作列（含專案名稱輸入框）才有一條分隔線墊在上面，不會直接貼死在視窗頂端。
-           main 內部仍是 flex:1/min-height:0（見上方基礎規則），會自動吃掉扣掉分隔線後
-           剩下的高度，不需要另外算 calc()。 */
+        /* 寬版模式：100vh 錨點下移一層，讓標題區塊也能被捲動到視窗外。 */
         .main-content.is-fluid {
             flex: 1;
             height: auto;
@@ -124,6 +104,19 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         .main-content.is-fluid #mainAnchor {
             flex: none;
             height: 100vh;
+        }
+
+        /* 寬版模式下捲動吸附，放開後固定落在標題或內容區其中一個起點。 */
+        html.is-fluid {
+            scroll-snap-type: y mandatory;
+        }
+
+        .main-content.is-fluid #pageHeader {
+            scroll-snap-align: start;
+        }
+
+        .main-content.is-fluid #mainAnchor {
+            scroll-snap-align: start;
         }
 
         .editor-shell {
@@ -152,10 +145,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
             order: 5;
         }
 
-        /* 三欄之間的可拖曳分隔線（取代原本固定的 gap:1rem）。寬版才需要調欄寬，
-           手機/平板堆疊版面用不到，預設隱藏；desktop+ 才顯示並提供拖曳/鍵盤互動。
-           寬度 1rem 剛好接手原本 gap 讓出的視覺間距，中間三點 grip 圖示純裝飾用
-           aria-hidden，實際可操作的是整個 .col-resizer（role="separator"）。 */
+        /* 三欄之間的可拖曳分隔線，寬版才顯示，支援拖曳與鍵盤調整欄寬。 */
         .col-resizer {
             display: flex;
             align-items: center;
@@ -194,8 +184,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
             height: 220px;
         }
 
-        /* 左欄只有 pieceListBox 一個面板，直接吃滿 #pieceListSidebar 整欄高度；
-           自己要是 flex column，#pieceList 的 flex:1/min-height:0 才有依據可縮。 */
+        /* 左欄面板吃滿整欄高度，內部清單自行捲動。 */
         #pieceListBox {
             flex: 1 1 auto;
             min-height: 140px;
@@ -204,8 +193,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
             overflow: hidden;
         }
 
-        /* 桌面版欄位較窄，改採單欄直向清單（取代手機版的橫向捲動 strip），
-           避免縮圖用 auto-fill 網格塞進窄欄位時最後一列數量對不齊、看起來跑版。 */
+        /* 桌面版欄位較窄，改採單欄直向清單，避免縮圖網格跑版。 */
         #pieceList {
             flex: 1 1 auto;
             min-height: 0;
@@ -220,8 +208,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
             width: 100%;
         }
 
-        /* 物件設定不再是 popover，改成跟 previewPaneBox 一樣的固定面板，
-           吃掉 dock 讓出來的剩餘高度、內部自己捲動。 */
+        /* 物件設定改為固定面板並自行捲動，不再用 popover 呈現。 */
         #propertiesPanel {
             flex: 1 1 auto;
             min-height: 160px;
@@ -306,8 +293,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         background: #2b2b2b;
     }
 
-    /* 預覽底色：預設棋盤格才看得出透明範圍，另外提供純黑／純白／灰三種切換，
-       方便針對淺色或深色去背結果分別檢查邊緣有沒有殘留的背景色。 */
+    /* 預覽底色預設棋盤格，另提供黑／白／灰切換方便檢查去背邊緣。 */
     .pane-canvas-wrap.is-preview.bg-checker {
         background:
             linear-gradient(45deg, #d0d0d0 25%, transparent 25%, transparent 75%, #d0d0d0 75%) 0 0/16px 16px,
@@ -327,15 +313,12 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         background: var(--ts-gray-200, #e8e8e8);
     }
 
-    /* 還沒選取物件時一律強制灰底，不管目前記住的底色偏好是哪一種：棋盤格在「根本沒有內容」
-       時看起來像是在暗示有透明範圍，容易誤導。等選到物件後才恢復顯示使用者選擇的底色
-       （靠 CSS 來源順序：這條規則排在四個 bg-* 之後，同層級 class 數比大小時後到者赢）。 */
+    /* 未選取物件時固定灰底，避免棋盤格誤導成有透明內容。 */
     .pane-canvas-wrap.is-preview.is-empty {
         background: var(--ts-gray-200, #e8e8e8);
     }
 
-    /* 不套 Tocas .ts-selection：那個元件每個選項都是一個帶內距、圓角、底色的「按鈕」，
-       四個色塊擠在標題列裡會多一層視覺噪音。這裡直接排緊湊的色塊列，選取狀態靠外框表示。 */
+    /* 不用 Tocas 選取元件樣式，改排緊湊色塊列，選取狀態靠外框表示。 */
     .preview-bg-toggle {
         display: flex;
         align-items: center;
@@ -396,15 +379,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         outline: 3px solid var(--ts-primary-500, #3b82f6);
     }
 
-    /* 依目前工具切換游標樣式（見 scan-view.js 的 _updateCursorClass）：
-       矩形/套索共用一套修飾鍵游標——已有選取時，預設（無修飾鍵）＝加選，用十字＋藍色＋角標；
-       Alt＝減選，用十字＋紅色－角標；Shift＝取代整個選取，跟完全沒有選取時一樣用純十字；
-       橡皮擦改用 cursor:none，實際筆刷範圍改由 canvas 疊圖即時畫出（見 eraser.js drawOverlay），
-       因為 CSS 游標圖是螢幕固定尺寸，沒辦法反映縮放後筆刷實際涵蓋的影像範圍；
-       平移游標（cursor-pan / is-pan-armed）也同時涵蓋滑鼠中鍵按住拖曳的情況（見 scan-view.js
-       _onPointerDown 的 evt.button === 1 分支）；is-panning 額外區分「正在拖曳中」（握拳）跟
-       is-pan-armed 的「準備好但還沒按下」（張手），由 PanTool 在 onPointerDown/Up 加減，三種
-       平移情境（平移工具／空白鍵／中鍵）共用同一個 PanTool 實例所以自動一致。 */
+    /* 依目前工具與修飾鍵切換游標樣式（加選／減選／取代／橡皮擦／平移）。 */
     #scanCanvas.cursor-crosshair {
         cursor: crosshair;
     }
@@ -465,8 +440,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         pointer-events: none;
     }
 
-    /* 底色＋漸層都取自 Tocas 既有的灰階變數，深淺模式切換時變數本身就會跟著變，
-       不用另外寫一份深色版規則。 */
+    /* 底色與漸層沿用 Tocas 灰階變數，深色主題會自動跟著變暗。 */
     .skeleton {
         background-image: linear-gradient(90deg,
             var(--ts-gray-200, #e8e8e8) 0%,
@@ -501,24 +475,17 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         flex-wrap: wrap;
     }
 
-    /* 浮動工具列已經靠 overflow-x:auto 處理擠不下的情況（見上面 .canvas-floating-toolbar），
-       不能再讓 .pane-toolbar 的 flex-wrap:wrap 生效，否則兩種「擠不下」的因應方式會打架
-       （換行造成的高度增加、又被 overflow-x 的捲軸邏輯裁切）。寬度夠時維持單行，
-       真的放不下就交給既有的橫向捲動，而不是換成兩行。 */
+    /* 浮動工具列維持單行，擠不下時交給橫向捲動而非換行。 */
     .canvas-floating-toolbar.pane-toolbar {
         flex-wrap: nowrap;
     }
 
-    /* Tocas .ts-button 把 min-width 重設成 0，等於拿掉瀏覽器 flex 收縮的自動下限保護；
-       容器寬度不夠時，沒有額外保護的按鈕（例如下面的新增物件「+」）會被壓扁到只剩幾 px 寬，
-       緊鄰的分隔線也會被壓成 0 寬直接消失。這裡讓工具列的每個直接子項都不收縮，
-       擠不下時交給容器既有的 overflow-x:auto 橫向捲動，而不是犧牲按鈕的完整外觀。 */
+    /* 工具列子項固定不收縮，擠不下時交給橫向捲動，避免按鈕被壓扁。 */
     .canvas-floating-toolbar.pane-toolbar>* {
         flex-shrink: 0;
     }
 
-    /* 新增物件鈕＋緊鄰的分隔線包成一組，讓 wireToolbarOverflow() 收合/還原時只要切一個
-       元素的 display，兩者維持原本的間距（沿用 .pane-toolbar 的 gap）不用另外處理。 */
+    /* 新增物件鈕與分隔線包成一組，收合/還原時一起切換顯示。 */
     .pane-tool-collapsible {
         display: flex;
         align-items: center;
@@ -529,14 +496,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         flex-shrink: 0;
     }
 
-    /* Tocas .ts-selection.is-compact 每顆選項的 .text 內距是給文字按鈕留的（左右各 15px），
-       這裡放的是純圖示（文字靠 has-hidden 視覺隱藏），沿用文字按鈕的內距讓圖示浮在一大片
-       空白中。另外 .item 本身的高度是自己算出來的（圖示+內距），比 .ts-selection 用來排列
-       整列的 --height（Tocas 緊湊尺寸的列高，跟旁邊縮放按鈕共用同一個值）矮一截，垂直置中
-       之下上下就多出說不出所以然的留白。改用固定寬高＝--height（跟縮放的正方形圖示按鈕
-       對齊）取代內距，撐滿列高、拿掉多餘空白，並靠 icon 自己 flex 置中；.ts-selection 自己
-       的內距也歸零（外層 .canvas-floating-toolbar 已經給過一次間距，不需要疊兩層），改用
-       gap 讓按鈕之間保留呼吸空間，不會因為拿掉內距而彼此貼死。 */
+    /* 圖示按鈕改用固定寬高置中，取代文字按鈕預設內距造成的多餘留白。 */
     .canvas-floating-toolbar .ts-selection.is-compact {
         padding-left: 0;
         padding-right: 0;
@@ -554,14 +514,12 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         justify-content: center;
     }
 
-    /* 拿掉內距後按鈕本身有空間了，圖示卻還是沿用文字按鈕的預設字級（14px），在正方形按鈕裡
-       顯小。放大圖示字級，視覺份量才配得上按鈕本身的大小。 */
+    /* 拿掉內距後放大圖示字級，跟按鈕大小更相襯。 */
     .canvas-floating-toolbar .ts-selection.is-compact .item .text .ts-icon {
         font-size: 1.2rem;
     }
 
-    /* #pieceList 沒有明確尺寸的父層可依附，不能沿用 .pane-empty-state 的絕對定位手法，
-       改走一般文件流置中。 */
+    /* 無明確尺寸父層可依附，改走一般文件流置中。 */
     .piece-list-empty-state,
     .pane-empty-state-static {
         display: flex;
@@ -573,20 +531,21 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         padding: 1.5rem 1rem;
     }
 
-    /* 「匯入」跟「專案」選單語意上是兩件事（前者匯入照片、後者管理整個專案檔），
-       特意不用 .ts-buttons 黏在一起，避免看起來像同一顆按鈕的展開選單。 */
+    /* 空狀態為橫向清單裡的唯一子項，需明講寬度才能置中。 */
+    .piece-list-empty-state {
+        width: 100%;
+    }
+
+    /* 匯入與專案選單語意不同，刻意不黏在一起以免誤認為同一顆按鈕。 */
     .pane-toolbar-buttons {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        /* #scanPaneBox 是 .ts-box，Tocas 對它套用 overflow:hidden（做圓角裁切）；標題列預設不換行，
-           寬度不夠時原本是右側的按鈕群組（含全螢幕切換）被無聲裁掉、視覺上「消失」而非還在只是換行。
-           固定不縮，讓左邊的標題（見 .pane-card-header-title 的 ellipsis）先被壓縮/截斷。 */
+        /* 按鈕群固定不縮，寬度不夠時改由標題文字先被截斷。 */
         flex-shrink: 0;
     }
 
-    /* 標題列裡兩組性質不同的按鈕群（例如底色切換 vs 顯示模式選單）之間的細直線分隔，
-       跟隔壁的 .ts-divider（水平、獨立一整行）用途不同，這裡要嵌在同一行 flex 裡當視覺區隔。 */
+    /* 標題列按鈕群之間的細直分隔線，用於同一行內的視覺區隔。 */
     .pane-toolbar-divider {
         width: 1px;
         align-self: stretch;
@@ -594,16 +553,14 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         background: var(--ts-gray-300, #ddd);
     }
 
-    /* 選取工具／其他工具兩叢各自獨立，讓彈出鈕跟著正在使用的那叢工具走，不會固定黏在
-       整排工具的最後面。叢間距比叢內距寬，視覺上分得出是兩組。 */
+    /* 選取工具與其他工具分成兩叢，叢間距比叢內距寬以利區分。 */
     .pane-tool-cluster {
         display: flex;
         align-items: center;
         gap: 0.6rem;
     }
 
-    /* 工具 radiogroup 跟它的模式彈出鈕（選取模式／橡皮擦筆刷大小）視覺上是同一組，
-       窄 gap 包成一叢、不用分隔線隔開，比照 Figma 工具列「圖示鈕＋緊貼小箭頭」的作法。 */
+    /* 工具與其模式彈出鈕視覺上同一組，窄間距包成一叢不用分隔線。 */
     .pane-tool-subcluster {
         display: flex;
         align-items: center;
@@ -622,18 +579,13 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         font-size: 0.85rem;
     }
 
-    /* 「匯出全部」下拉選單：不用原生 popover（top-layer 定位在不同瀏覽器間不夠穩定），
-       改用相對定位容器 + JS 切換 hidden，跟畫布浮動工具列同一手法自己控制位置。 */
+    /* 匯出選單改用自訂定位＋切換顯示，而非原生 popover。 */
     .pane-menu-wrap {
         position: relative;
         display: inline-flex;
     }
 
-    /* 選取模式／橡皮擦筆刷大小彈出鈕會被 JS 搬進 .ts-selection 裡、緊跟在使用中的那顆
-       工具後面。但 .ts-selection 本身的 flex gap（0.3rem）是設計給「平行的工具選項」用的
-       間距（例如矩形跟套索之間），彈出鈕不是平行選項、是附屬於前一顆工具的箭頭，兩者
-       關係要更緊——用負邊距把 flex gap 吃掉大半，只留一點點視覺呼吸空間，跟旁邊真正
-       獨立的工具選項拉出間距差異。 */
+    /* 彈出鈕附屬於前一顆工具，用負邊距縮小與其間距以跟平行選項區隔。 */
     .ts-selection .pane-menu-wrap {
         margin-left: -3px;
     }
@@ -642,10 +594,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         display: none;
     }
 
-    /* 縮放百分比顯示／輸入框沿用 Tocas .ts-button 預設的一般按鈕橫向留白／最小寬度
-       （給文字按鈕用，min-width: 75px），跟左右緊鄰的縮放圖示鈕（is-icon，幾乎無留白）
-       比起來顯得鬆散，這裡收窄讓整叢更緊密；min-width 只留剛好夠放最寬字串「800%」
-       （縮放上限 8 倍）的空間，避免縮放百分比變動時寬度跳動。 */
+    /* 縮放數值欄位收窄留白並固定寬度，避免數值變動時寬度跳動。 */
     #zoomDisplay,
     #zoomInput {
         min-width: 52px;
@@ -672,14 +621,12 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         display: none;
     }
 
-    /* .ts-icon 基礎規則寫死 display:inline，跟原生 [hidden] 的 UA 樣式 specificity 打平時
-       後者輸，用複合選擇器疊高 specificity 才能穩贏、不需要 !important。 */
+    /* 用複合選擇器疊高優先權，蓋過 [hidden] 的預設樣式。 */
     .ts-icon[hidden] {
         display: none;
     }
 
-    /* 選中狀態、密度、字級一律交給 Tocas 原生的 is-selected/is-dense/is-small/is-separated
-       修飾 class（見各選單標籤），這裡只補 Tocas 沒有內建的 nowrap/cursor。 */
+    /* 選中/密度/字級交給 Tocas 既有修飾 class，這裡只補 nowrap 與 cursor。 */
     .pane-dropdown-menu .item {
         white-space: nowrap;
         cursor: pointer;
@@ -698,8 +645,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         line-height: 1.35;
     }
 
-    /* 圖片清單下拉：每列是「切換使用中圖片」「重新命名」「刪除」三個各自獨立的可點擊目標，
-       不能整列包成一個 <button>（按鈕不能巢狀），改用 flex row 並排三顆按鈕。 */
+    /* 每列三個獨立可點擊目標（切換／重新命名／刪除），改用橫向排列並排。 */
     .pane-scan-menu-row {
         display: flex;
         align-items: center;
@@ -731,12 +677,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         white-space: nowrap;
     }
 
-    /* Tocas 的 .ts-selection 用 display:none 藏原生 radio、且完全沒有 focus-visible 樣式，
-       導致鍵盤使用者連 Tab 進工具選取群組都做不到。改用可視覺隱藏但仍可聚焦的手法，
-       並補上 focus-visible 外框，讓原生 radiogroup 方向鍵切換恢復作用。
-       不限定在 .ts-selection 底下，套用到頁面上所有 [role="radiogroup"] 結構
-       （浮動工具列的選取工具、預覽底色切換……），才不用每加一組就複製一次規則；
-       focus-visible 外框也用 + * 抓緊鄰的下一個元素，不管它實際 class 是什麼。 */
+    /* 修補原生 radiogroup 無法鍵盤聚焦的問題，套用到所有同類結構。 */
     [role="radiogroup"] input[type="radio"] {
         display: block;
         position: absolute;
@@ -755,8 +696,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         outline-offset: 2px;
     }
 
-    /* 左側工作區「單獨全螢幕」模式：畫布固定滿版，編輯工具列改為浮動於畫布上方，
-       其餘區塊（專案列、預覽欄、物件清單、屬性面板）暫時隱藏，避免鍵盤 Tab 誤入不可見控制項。 */
+    /* 全螢幕模式下隱藏其餘區塊，避免鍵盤 Tab 誤入不可見控制項。 */
     #main-content.is-focus-mode #projectToolbar,
     #main-content.is-focus-mode > .ts-divider,
     #main-content.is-focus-mode #editorDock,
@@ -836,8 +776,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         justify-content: center;
     }
 
-    /* 選擇器特異度刻意跟上面棋盤格那條規則打平（都是兩層 class），
-       靠來源順序（這條在後面）贏過去蓋掉棋盤格，而不是被它蓋掉。 */
+    /* 刻意跟棋盤格規則同層級，靠後到者蓋過前者。 */
     .piece-thumb .thumb-placeholder.skeleton {
         background-image: linear-gradient(90deg,
             var(--ts-gray-200, #e8e8e8) 0%,
@@ -847,7 +786,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         animation: pitrace-skeleton-shimmer 1.4s ease-in-out infinite;
     }
 
-    /* 批次匯出時（見 toolbar.js exportAllBundle）用 data-export-state 驅動狀態。 */
+    /* 批次匯出時用 data-export-state 驅動進度顯示狀態。 */
     .piece-thumb-progress {
         position: absolute;
         left: 0.3rem;
@@ -875,13 +814,12 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         background: var(--ts-primary-500, #3b82f6);
     }
 
-    /* 處理中：跑馬燈式不定進度（單一物件的匯出運算是不可分割的一整塊同步工作，
-       算不出真正的百分比，用滑動色塊表示「還在動」）。 */
+    /* 處理中：跑馬燈式不定進度動畫。 */
     .piece-thumb[data-export-state="active"] .piece-thumb-progress-bar {
         animation: pitrace-progress-indeterminate 1.1s ease-in-out infinite;
     }
 
-    /* 完成：滿條＋綠色，停留到整批匯出結束後才淡出（見 toolbar.js）。 */
+    /* 完成：滿條＋綠色，停留到整批匯出結束後才淡出。 */
     .piece-thumb[data-export-state="done"] .piece-thumb-progress-bar {
         left: 0;
         width: 100%;
@@ -951,9 +889,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         flex: none;
     }
 
-    /* Tocas 數字輸入框預設左右各 15px 內距是給一般寬度輸入框設計的，range-row 這裡
-       固定只有 4.5rem 寬，滑桿數值又可能到三位數（例如橡皮擦筆刷大小上限 300），
-       內距太寬會把數字擠到跟微調箭頭黏在一起、最後一位數看起來被裁掉。 */
+    /* 欄寬固定較窄，收窄內距避免三位數數值被擠到看起來被裁掉。 */
     .range-row .ts-input input {
         padding-left: 0.3rem;
         padding-right: 0.3rem;
@@ -980,9 +916,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         position: relative;
     }
 
-    /* 名稱欄位目前顯示值（不管是 OCR 建議還是手動打的）跟已存檔的物件名稱不一致時，
-       右側內嵌套用／還原兩顆小圓鈕，取代「按 Enter 才生效、切走就作廢」這種看不見
-       的隱性規則，讓使用者可以明確選擇。輸入框右邊留白，避免文字被按鈕蓋住。 */
+    /* 名稱與已存檔不一致時顯示套用／還原按鈕，輸入框右側留白避免被蓋住。 */
     .name-row .ts-input input {
         padding-right: 3.6rem;
     }
@@ -1035,13 +969,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         min-height: 1.2em;
     }
 
-    /* Tocas 的 ts-snackbar 只提供膠囊樣式，定位／淡入淡出／自動消失都需要自己接上，
-       這裡讓它固定在畫面下方置中，作為 announce() 狀態訊息的可視化版本。.main-content 鎖了
-       viewport 高度（見上面「頁尾是 flex 手足」那段），畫布下方的浮動工具列
-       （.canvas-floating-toolbar）上緣實測落在離視窗底部約 11rem 處，這裡把 snackbar 的
-       bottom 拉到 12rem，讓它穩定浮在工具列上方、不會疊在一起。z-index 刻意比
-       focus-mode 全螢幕畫布（#scanPaneBox，z-index:1000）高一階，讓 snackbar 一定蓋在上面，
-       不依賴「JS 把它 append 到 body 尾端」這個 DOM 順序來決定疊層。 */
+    /* 狀態提示固定於畫面下方置中，疊層順序蓋過全螢幕畫布。 */
     .pitrace-snackbar {
         position: fixed;
         left: 50%;
@@ -1066,6 +994,132 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         border-radius: 8px;
         background: var(--ts-primary-50, rgba(59, 130, 246, 0.06));
     }
+
+    /* 重置 <button class="item"> 的瀏覽器預設外觀，讓 Tocas 的 .item／.is-active 規則生效。 */
+    .ts-tab.license-tabs > button.item {
+        appearance: none;
+        background: none;
+        border: 0;
+        font: inherit;
+        cursor: pointer;
+    }
+
+    .ts-tab.license-tabs > button.item:focus-visible {
+        outline: 2px solid light-dark(#1d4ed8, #93c5fd);
+        outline-offset: -2px;
+    }
+
+    .license-dialog-content {
+        display: flex;
+        flex-direction: column;
+        height: min(40rem, calc(100dvh - 3rem));
+    }
+
+    .license-body {
+        flex: 1 1 auto;
+        min-height: 12rem;
+        overflow-y: auto;
+        overflow-wrap: anywhere;
+    }
+
+    /* help-* 為說明內容固定輸出的 class 名稱。 */
+    .help-list {
+        margin: 0;
+        padding-left: 1.25rem;
+        line-height: 1.7;
+    }
+
+    .license-body > div > * + * {
+        margin-top: .75rem;
+    }
+
+    .help-list > li + li {
+        margin-top: .375rem;
+    }
+
+    .help-paragraph {
+        margin: 0;
+        line-height: 1.7;
+    }
+
+    .help-quote {
+        margin: 0;
+        padding: .5rem .75rem;
+        border: 1px solid var(--ts-gray-300, #ddd);
+        border-radius: var(--ts-border-radius-container, 8px);
+        background: var(--ts-gray-100, #f2f2f2);
+    }
+
+    .help-table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--ts-gray-300, #ddd);
+        border-radius: var(--ts-border-radius-container, 8px);
+    }
+
+    .help-table-wrap .ts-table {
+        width: 100%;
+    }
+
+    .help-table-wrap :is(th, td):first-child {
+        white-space: nowrap;
+    }
+
+    .help-table-wrap thead tr:first-child :is(th, td):first-child {
+        border-top-left-radius: inherit;
+    }
+
+    .help-table-wrap thead tr:first-child :is(th, td):last-child {
+        border-top-right-radius: inherit;
+    }
+
+    .help-table-wrap tbody tr:last-child :is(th, td):first-child {
+        border-bottom-left-radius: inherit;
+    }
+
+    .help-table-wrap tbody tr:last-child :is(th, td):last-child {
+        border-bottom-right-radius: inherit;
+    }
+
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    .footer-plain-link {
+        display: inline-block;
+        min-height: 24px;
+        line-height: 24px;
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .ts-button.footer-action-button {
+        --height: 24px;
+        min-width: 0;
+        padding: 0 .65em;
+        border-width: 1px;
+        font-size: .8em;
+    }
+
+    /* Tocas 的 .ts-selection 無直向堆疊版型，手機寬度下改垂直排列並重設高度/圓角 */
+    .ts-selection.theme-switcher-stacked {
+        flex-direction: column;
+        height: auto;
+        align-items: stretch;
+        gap: 0.2rem;
+        padding: 0.35rem;
+        border-radius: var(--ts-border-radius-container, 8px);
+    }
+
+    .ts-selection.theme-switcher-stacked .item .text {
+        width: 100%;
+    }
     </style>
 </head>
 
@@ -1075,16 +1129,18 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
     <div class="main-content">
         <div class="ts-container" id="pageContainer">
 
-            <!-- 標題 -->
-            <div class="ts-grid is-middle-aligned">
+            <!-- 標題：頂部留白歸頁首自己，不再靠 #pageContainer 代勞 -->
+            <div class="ts-grid is-middle-aligned has-top-padded" id="pageHeader">
                 <div class="column is-fluid">
-                    <div class="ts-header is-heavy is-large is-start-icon">
-                        <span class="ts-icon is-file-image-icon" aria-hidden="true"></span>
-                        Pitrace 拾印 <span
-                            style="font-size:0.875rem;color:var(--ts-gray-500);font-weight:normal;margin-left:0.5rem;">v<?= htmlspecialchars($appVersion) ?></span>
+                    <div class="ts-wrap is-middle-aligned is-compact">
+                        <div class="ts-header is-heavy is-large is-start-icon" role="heading" aria-level="1">
+                            <span class="ts-icon is-file-image-icon" aria-hidden="true"></span>
+                            Pitrace 拾印
+                        </div>
+                        <span class="ts-text is-description">v<?= htmlspecialchars($appVersion) ?></span>
                     </div>
-                    <div class="ts-text is-secondary">
-                        匯入圖片，去背、校正、匯出透明 PNG，全程本機處理不上傳。
+                    <div class="ts-text is-description mobile:has-hidden">
+                        掃描圖片，框選去背、校正，匯出透明圖檔。
                     </div>
                 </div>
                 <div class="column mobile:has-hidden">
@@ -1117,8 +1173,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                                         <span class="ts-icon is-chevron-down-icon" id="btnImportImageChevron"
                                             aria-hidden="true" hidden></span>
                                     </button>
-                                    <!-- 匯入前是單純的「匯入」按鈕；有圖片後變成下拉選單：清單本身（切換圖片）
-                                         是較常用的操作放上面，「匯入」放最下面、用分隔線隔開。 -->
+                                    <!-- 有圖片後「匯入」變下拉選單，常用操作在上、匯入在下。 -->
                                     <div class="ts-menu is-dense is-small is-separated pane-dropdown-menu" id="scanMenu" role="menu"
                                         aria-label="圖片清單" hidden>
                                         <!-- 動態生成 -->
@@ -1273,8 +1328,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                                     </div>
                                 </div>
 
-                                <!-- 縮放控制群組本身是深色實心的 .ts-buttons 分段按鈕，已經自帶明顯的容器邊界，
-                                     跟工具那疊淺灰膠囊之間不需要再疊一條分隔線重複宣告「這裡是分界」。 -->
+                                <!-- 縮放控制群組本身自帶容器邊界，不需要再加分隔線。 -->
                                 <div class="ts-buttons">
                                     <button id="btnZoomOut" class="ts-button is-icon" aria-label="縮小畫面" data-tooltip="縮小畫面">
                                         <span class="ts-icon is-magnifying-glass-minus-icon" aria-hidden="true"></span>
@@ -1293,7 +1347,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
 
                                 <!-- 容器寬度不夠同時放下所有按鈕時（例如欄寬被拉桿拖窄），依 data-collapse-priority
                                      由小到大依序把上面標了優先權的按鈕「完整地」收進這個選單，而不是壓縮/裁切
-                                     它們——比照 Figma 工具列窄寬度時的做法。JS 邏輯見 toolbar.js wireToolbarOverflow()。 -->
+                                     它們——比照 Figma 工具列窄寬度時的做法。JS 邏輯見 canvas-toolbar.js wireToolbarOverflow()。 -->
                                 <div class="pane-menu-wrap" id="toolbarOverflowWrap" hidden>
                                     <button id="btnToolbarOverflow" class="ts-button is-icon is-ghost" aria-label="更多工具"
                                         aria-haspopup="menu" aria-expanded="false" data-tooltip="更多工具">
@@ -1673,6 +1727,31 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         </div>
     </div>
 
+    <!-- 內文讀根目錄 LICENSE。 -->
+    <dialog id="license-dialog" class="ts-modal is-large" aria-labelledby="license-dialog-title"
+        data-license-src="<?= $appBasePath ?>/LICENSE">
+        <div class="content license-dialog-content">
+            <div class="ts-content">
+                <div class="ts-header is-start-icon" id="license-dialog-title">
+                    <span class="ts-icon is-copyright-icon" aria-hidden="true"></span>
+                    授權 License
+                </div>
+                <div class="ts-tab is-dense is-pilled is-fluid license-tabs has-top-spaced" role="tablist"></div>
+            </div>
+            <div class="ts-content">
+                <div class="ts-box license-body">
+                    <div class="ts-text is-description">載入中…</div>
+                </div>
+            </div>
+            <div class="ts-divider"></div>
+            <div class="ts-content">
+                <div class="ts-wrap is-end-aligned">
+                    <button type="button" class="ts-button" id="btn-license-close">關閉</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
     <div id="app-footer" class="ts-content is-secondary is-vertically-padded">
         <div class="ts-container is-fluid">
             <div class="ts-grid">
@@ -1699,7 +1778,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                 </div>
                 <div class="column is-end-aligned">
                     <div class="ts-wrap is-top-aligned" style="height:100%">
-                        <div class="ts-selection is-circular is-compact mobile:theme-switcher-stacked" role="radiogroup" aria-label="佈景主題切換">
+                        <div class="ts-selection is-circular is-compact mobile:theme-switcher-stacked">
                             <label class="item">
                                 <input type="radio" name="theme" value="light" id="theme-light">
                                 <div class="text">淺色</div>
@@ -1768,6 +1847,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         const isFluid = mode === 'fluid';
         container.classList.toggle('is-fluid', isFluid);
         document.querySelector('.main-content').classList.toggle('is-fluid', isFluid);
+        document.documentElement.classList.toggle('is-fluid', isFluid); // 給桌面寬版的捲動吸附用（CSS scroll-snap-type 掛在 html 上）
         btn.setAttribute('aria-pressed', String(isFluid));
         const label = isFluid ? '維持標準寬度' : '使用完整頁面寬度';
         btn.setAttribute('aria-label', label);

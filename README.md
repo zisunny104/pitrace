@@ -101,7 +101,7 @@ cd pitrace
 
 ---
 
-**版本**：0.1.2
+**版本**：0.2.0
 **作者**：Tokas (Xiang-zi Xie)
 **專案**：KoiLiSu 開利手
 **網址**：https://toka.dev/koilisu/pitrace

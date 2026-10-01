@@ -3,7 +3,7 @@
 // store.selectionMode（工具列彈出選單設定的持久預設模式）；完全沒有選取時純拖曳才是新建。
 // 加/減選時矩形會轉成 loop 疊進既有選取（selection-geometry.js 的 rectToLoop），選取型別
 // 因此變成 'lasso'；新建才維持單純的 'rect' 型別。
-// 鍵盤等效操作在屬性面板的 X/Y/寬/高 數字輸入（由 ui/toolbar.js 綁定）。
+// 鍵盤等效操作在屬性面板的 X/Y/寬/高 數字輸入（由 ui/properties-panel.js 綁定）。
 
 import { store } from '../state.js';
 import { loopsFromSelection, rectToLoop } from '../canvas/selection-geometry.js';

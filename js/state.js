@@ -144,7 +144,7 @@ class Store extends EventTarget {
     // 物件補發 piece-changed，讓監聽端（thumbnails.js 的 refreshOne）照舊只重繪真正變過的
     // 縮圖，沒變的物件不會被殃及。
     // fields 一併算出實際變了哪些欄位（比對舊物件同一欄位的值），跟 updatePiece() 的
-    // { fields: Object.keys(patch) } 走同一套契約——不帶 fields 的話，toolbar.js 的
+    // { fields: Object.keys(patch) } 走同一套契約——不帶 fields 的話，properties-panel.js 的
     // syncPropertiesPanel 會當成「什麼都可能變了」，undo/redo 任何欄位都會誤觸發套索清單整批重建。
     // 物件是「重新出現」（oldPiece 不存在，例如刪除後 undo）才維持不帶 fields，因為那時就是真的
     // 什麼都要當成新的處理。
@@ -399,7 +399,7 @@ class Store extends EventTarget {
         if (!piece) return;
         this._beginCoalescedEdit();
         Object.assign(piece, patch);
-        // fields 讓監聽端（例如 toolbar.js 的 syncPropertiesPanel）可以判斷這次到底改了
+        // fields 讓監聽端（例如 properties-panel.js 的 syncPropertiesPanel）可以判斷這次到底改了
         // 哪些欄位，不用每次都當成「什麼都可能變了」處理。
         this.emit('piece-changed', { pieceId, fields: Object.keys(patch) });
     }

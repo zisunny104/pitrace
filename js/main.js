@@ -4,11 +4,12 @@
 import { ScanView } from './canvas/scan-view.js';
 import { PreviewPane } from './canvas/preview-pane.js';
 import { ThumbnailStrip } from './ui/thumbnails.js';
-import { wireUI } from './ui/toolbar.js';
+import { wireUI } from './ui/wire-ui.js';
 import { wireResizableColumns } from './ui/resizable-columns.js';
 import { makeToolbarArrowNav } from './a11y.js';
 import { wireToolShortcuts } from './tools/shortcuts.js';
 import { initAutosave } from './autosave.js';
+import { wireLicenseDialog } from './help/license-dialog.js';
 
 const statusEl = document.getElementById('statusRegion');
 const scanView = new ScanView(document.getElementById('scanCanvas'), statusEl);
@@ -19,6 +20,7 @@ wireUI({ scanView, statusEl });
 wireResizableColumns();
 wireToolShortcuts(statusEl);
 initAutosave(statusEl);
+wireLicenseDialog();
 
 makeToolbarArrowNav(document.getElementById('projectToolbar'));
 makeToolbarArrowNav(document.querySelector('.canvas-floating-toolbar'));

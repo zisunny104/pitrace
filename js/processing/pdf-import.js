@@ -1,5 +1,5 @@
 // PDF 匯入：把 PDF 每一頁渲染成點陣圖，回傳跟一般圖片匯入相同形狀的頁面描述，
-// 不碰 store——落地（決定專案命名、逐頁呼叫 store.addScan()）由呼叫端（toolbar.js）負責，
+// 不碰 store——落地（決定專案命名、逐頁呼叫 store.addScan()）由呼叫端（project-toolbar.js）負責，
 // 跟一般圖片匯入共用同一套流程；超過 MAX_SCAN_PIXELS 時也會透過 state.js 既有的
 // getScanBitmap()/_downscaleScan() 延遲壓縮成 webp，PDF 匯入不需要另外處理。
 //
