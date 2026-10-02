@@ -23,6 +23,8 @@
 
 ## 使用方式
 
+直接使用：[網頁工具](https://toka.dev/koilisu/pitrace)。
+
 1. **匯入掃描**：點擊「匯入」選擇 PNG／JPEG／WebP 或 PDF 檔案（PDF 每頁以 600 DPI 渲染成一張掃描圖）
 2. **新增作品**：點擊「新增作品」，在左側掃描畫布上用矩形或套索框出一件作品
 3. **調整**：視需要旋轉、微調選取範圍座標、取樣或手動輸入去背背景色，並用「去背強度」滑桿微調
@@ -39,33 +41,9 @@
 - **專案檔格式**：自製零依賴 ZIP（STORED，不壓縮）讀寫模組，封裝 manifest + 原圖 + 各作品編輯參數
 - **處理方式**：完全在瀏覽器端處理，無需後端伺服器，不上傳任何影像資料
 
-## 安裝
+## 維護
 
-### 獨立使用
-
-1. Clone repo：
-```bash
-git clone https://github.com/zisunny104/pitrace.git
-cd pitrace
-```
-
-2. 設定網頁伺服器
-
-3. 直接訪問 `index.php`
-
-### 與 KoiLiSu 開利手整合
-
-1. 將此 repo 放置在 `koilisu/apps/pitrace/` 目錄
-2. 透過 `https://toka.dev/koilisu/pitrace` 造訪
-
-### 更新部署
-
-在伺服器上的專案目錄執行 `./deploy.sh`：先確認沒有未 commit 的修改，fetch remote `main`，**merge 前**用 `php -l` 檢查新增／修改的 PHP 檔語法（有錯就中止，線上檔案不動），再 fast-forward 更新並列出這次的 commit。純 PHP 頁面殼加瀏覽器端 JS，沒有資料庫或需要 PHP 寫入的目錄，所以不需要額外擴充套件或修正權限。
-
-- `DEPLOY_BRANCH`：要部署的 branch，預設 `main`
-- `DEPLOY_RELOAD_CMD`：更新後要執行的指令，給 opcache 不檢查檔案時間戳的伺服器用，例如 `DEPLOY_RELOAD_CMD="systemctl reload php8.3-fpm" ./deploy.sh`
-
-伺服器上沒有 `php` 指令時會略過語法檢查（會提示），其餘流程照常。
+由作者維運；既有環境的更新工具為 `./deploy.sh`，請先審閱變更並完成驗證。
 
 ## 無障礙
 
