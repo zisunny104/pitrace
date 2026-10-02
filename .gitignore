@@ -47,3 +47,20 @@ phpunit.xml
 node_modules/
 npm-debug.log
 yarn-error.log
+
+# 本機機密與開發產物；來源、授權、固定 vendor 與測試程式仍版控。
+.env.*
+!.env.example
+!.env.sample
+*.local.php
+.claude/
+.codex/
+__pycache__/
+*.py[cod]
+*.swp
+*.orig
+*.key
+*.pem
+*.p12
+*.pfx
+/secrets/
