@@ -1,4 +1,4 @@
-// 左側「作品清單」面板（#pieceListBox）：新增物件鈕、批次匯出全部。
+// 左側「物件清單」面板（#pieceListBox）：新增物件鈕、批次匯出全部。
 
 import { store } from '../state.js';
 import { exportPiecePNG, exportPieceSVG } from '../canvas/preview-pane.js';

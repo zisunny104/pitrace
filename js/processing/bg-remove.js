@@ -145,7 +145,7 @@ export function sampleBorderColor(imageData) {
     return { r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n) };
 }
 
-/** 取樣背景色工具：在原始掃描畫布上點一下，把該像素顏色設為目前作品的背景取樣色。 */
+/** 取樣背景色工具：在原始掃描畫布上點一下，把該像素顏色設為目前物件的背景取樣色。 */
 export class EyedropperTool {
     constructor() {
         this.hoverColor = null; // { r, g, b }，滑鼠底下目前的顏色，還沒點下去前的即時預覽

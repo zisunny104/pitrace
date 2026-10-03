@@ -161,7 +161,7 @@ class Store extends EventTarget {
         }
     }
 
-    // 立即記一步（新增／刪除作品這類離散動作）：先把任何合併中的連續編輯結清，維持步驟順序。
+    // 立即記一步（新增／刪除物件這類離散動作）：先把任何合併中的連續編輯結清，維持步驟順序。
     _pushHistoryStep() {
         this._flushPendingHistory();
         this._undoStack.push(this._snapshotPieces());
