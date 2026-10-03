@@ -46,7 +46,7 @@
 
 ## 部署
 
-`./deploy.sh`：檢查 working tree、fetch、先驗證新增／修改的 PHP 語法，再 fast-forward 更新。環境變數 `DEPLOY_BRANCH` 指定分支（預設 `main`），`DEPLOY_RELOAD_CMD` 指定更新後要執行的 PHP-FPM 重載指令。
+`./deploy.sh`：檢查 working tree、fetch、先驗證新增／修改的 PHP 語法，再 fast-forward 更新。環境變數 `DEPLOY_BRANCH` 指定分支（預設 `main`），`DEPLOY_RELOAD_CMD` 指定更新後要執行的 PHP-FPM 重載指令。部署完成後會自動檢查 `.git/` 是否能被網頁下載：用 `DEPLOY_CHECK_URL=https://example.com/project ./deploy.sh` 指定網站網址（沒設就只提醒）；`./deploy.sh --check-only` 不更新程式碼，只做這項檢查。發現外洩時印出可貼的 Nginx 設定並以非 0 結束。
 
 ## 無障礙
 
