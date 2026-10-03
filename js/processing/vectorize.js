@@ -7,7 +7,7 @@ function lerp(a, b, va, vb, threshold) {
     return a + ((threshold - va) / (vb - va)) * (b - a);
 }
 
-// 單一 cell（四角 tl/tr/bl/br，位於格點座標 i,j ~ i+1,j+1）依 marching squares 16 種组合
+// 單一 cell（四角 tl/tr/bl/br，位於格點座標 i,j ~ i+1,j+1）依 marching squares 16 種組合
 // 回傳 0~2 條線段；case 5 / 10 是對角鞍點，用四角平均值當「中心值」來決定連法。
 function cellSegments(i, j, tl, tr, bl, br, threshold) {
     const c =
