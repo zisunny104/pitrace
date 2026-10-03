@@ -1,4 +1,4 @@
-// 作品縮圖清單：依 store.project.pieces 動態產生可點擊、可鍵盤操作（Tab 逐一移動）的縮圖按鈕。
+// 物件縮圖清單：依 store.project.pieces 動態產生可點擊、可鍵盤操作（Tab 逐一移動）的縮圖按鈕。
 
 import { store, getPieceColor } from '../state.js';
 import { renderPiece } from '../canvas/preview-pane.js';
