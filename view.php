@@ -1806,7 +1806,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         document.body.className = theme === 'system' ?
             'is-rounded' :
             `is-rounded is-${theme}`;
-        document.cookie = `preferred-theme=${theme}; path=/; max-age=31536000`;
+        document.cookie = `preferred-theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
     }
 
     function getPreferredTheme() {
@@ -1853,7 +1853,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         btn.setAttribute('aria-label', label);
         btn.title = label;
         icon.className = `ts-icon ${isFluid ? 'is-arrows-left-right-to-line-icon' : 'is-arrows-left-right-icon'}`;
-        document.cookie = `preferred-width=${mode}; path=/; max-age=31536000`;
+        document.cookie = `preferred-width=${mode}; path=/; max-age=31536000; SameSite=Lax`;
 
         // 只有 ≥1024px（CSS @media 的錨定範圍一致）才需要跟著捲動；手機/平板進這個分支時
         // #btnToggleWidth 本來就被 widescreen-only 的欄位隱藏，不會被使用者手動觸發，
