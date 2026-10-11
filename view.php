@@ -13,8 +13,13 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
     <meta charset="UTF-8">
     <title>Pitrace 拾印 - KoiLiSu | prjToka</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/5.7.0/tocas.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/5.7.0/tocas.min.js"></script>
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/5.7.0/tocas.min.css"
+        integrity="sha512-F4xj0Qcc6/jwQjpN70mZP1F5edUVg/WbWEYqUu1FEnvZFAg5IxvBAlNgji+6547uhPtaO14HmBdMhsZ19fHVSw=="
+        crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/5.7.0/tocas.min.js"
+        integrity="sha512-nzuAF7sDvUg8SagRIjY6B5mXfwuMW/3fOU/LITsIukL7PVzfN1srR+2GSfqYr53gRkq8B2y0Sb7Z66ZRMmtxdg=="
+        crossorigin="anonymous"></script>
 
     <style type="text/css">
     body {
@@ -1759,7 +1764,7 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
                     <div class="ts-wrap is-vertical is-compact">
                         <div class="ts-text is-description">
                             <a href="/koilisu/" class="footer-plain-link">KoiLiSu 開利手</a> -
-                            讓工具使用更順手的開放專案 | <a href="https://toka.dev" target="_blank" rel="noopener" class="footer-plain-link">prjToka</a>
+                            讓工具使用更順手的開放專案 | <a href="https://toka.dev" target="_blank" rel="noopener noreferrer" class="footer-plain-link">prjToka</a>
                         </div>
                         <div class="ts-wrap is-middle-aligned is-compact">
                             <button type="button" id="btn-license" class="ts-button is-small is-start-icon footer-action-button">
@@ -1806,7 +1811,8 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         document.body.className = theme === 'system' ?
             'is-rounded' :
             `is-rounded is-${theme}`;
-        document.cookie = `preferred-theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+        const secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `preferred-theme=${theme}; path=/; max-age=31536000; SameSite=Lax${secure}`;
     }
 
     function getPreferredTheme() {
@@ -1853,7 +1859,8 @@ $appVersion = $appConfig['version'] ?? '0.0.0';
         btn.setAttribute('aria-label', label);
         btn.title = label;
         icon.className = `ts-icon ${isFluid ? 'is-arrows-left-right-to-line-icon' : 'is-arrows-left-right-icon'}`;
-        document.cookie = `preferred-width=${mode}; path=/; max-age=31536000; SameSite=Lax`;
+        const secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `preferred-width=${mode}; path=/; max-age=31536000; SameSite=Lax${secure}`;
 
         // 只有 ≥1024px（CSS @media 的錨定範圍一致）才需要跟著捲動；手機/平板進這個分支時
         // #btnToggleWidth 本來就被 widescreen-only 的欄位隱藏，不會被使用者手動觸發，
