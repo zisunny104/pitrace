@@ -13,7 +13,7 @@
 - **選取遮罩預覽**：原始掃描畫面即時以半透明遮罩標示保留區與被挖空的區域
 - **即時所見即所得**：右側預覽即時反映裁切、旋轉、去背結果
 - **逐張輸出**：以原始解析度重新渲染，輸出真正帶 alpha 透明背景的 PNG
-- **`.pitra` 專案檔**：可儲存／開啟整個專案（掃描原圖＋所有物件的編輯參數），格式為自製零依賴 ZIP 容器
+- **`.pitra` 專案檔**：可儲存／開啟整個專案（掃描原圖＋所有物件的編輯參數），格式為自製零相依 ZIP 容器
 - **復原／重做**：框選、旋轉、去背調整等編輯步驟皆可 Ctrl+Z 復原、Ctrl+Shift+Z 重做
 - **橡皮擦**：拖曳擦除折痕、蟲蛀、污漬等局部瑕疵，按住 Alt 可還原，`[`／`]` 調整筆刷大小，同樣是非破壞性編輯
 - **自動儲存**：編輯中的專案會定期存到瀏覽器的 IndexedDB，重新整理或分頁當掉後可還原
@@ -39,14 +39,14 @@
 ## 技術規格
 
 - **前端框架**：Tocas UI 5.7.0
-- **執行環境**：PHP 輸出頁面 + 原生 ES6 模組（無建置工具、無 Node.js 依賴）
+- **執行環境**：PHP 輸出頁面 + 原生 ES6 模組（無建置工具、無 Node.js 相依套件）
 - **影像處理**：Canvas 2D / OffscreenCanvas，全程瀏覽器端運算
-- **專案檔格式**：自製零依賴 ZIP（STORED，不壓縮）讀寫模組，封裝 manifest + 原圖 + 各物件編輯參數
+- **專案檔格式**：自製零相依 ZIP（STORED，不壓縮）讀寫模組，封裝 manifest + 原圖 + 各物件編輯參數
 - **處理方式**：完全在瀏覽器端處理，無需後端伺服器，不上傳任何影像資料
 
 ## 部署
 
-`./deploy.sh`：檢查 working tree、取得遠端版本，再 fast-forward 更新。環境變數 `DEPLOY_BRANCH` 指定分支（預設 `main`），`DEPLOY_RELOAD_CMD` 指定更新後要執行的 PHP-FPM 重載指令。部署完成後會自動檢查 `.git/` 能不能被網頁下載。用 `DEPLOY_CHECK_URL=https://example.com/project ./deploy.sh` 指定網站網址，沒設就只提醒。用 `./deploy.sh --set-check-url https://example.com/project` 存一次，之後不必再帶環境變數。`./deploy.sh --check-only` 不更新程式碼，只做這項檢查。發現外洩時印出可貼的 nginx 設定，並以非 0 結束。
+`./deploy.sh`：檢查 working tree、取得 remote 版本，再 fast-forward 更新。環境變數 `DEPLOY_BRANCH` 指定 branch（預設 `main`），`DEPLOY_RELOAD_CMD` 指定更新後要執行的 PHP-FPM 重載指令。部署完成後會自動檢查 `.git/` 能不能被網頁下載。用 `DEPLOY_CHECK_URL=https://example.com/project ./deploy.sh` 指定網站網址，沒設就只提醒。用 `./deploy.sh --set-check-url https://example.com/project` 存一次，之後不必再帶環境變數。`./deploy.sh --check-only` 不更新程式碼，只做這項檢查。發現外洩時印出可貼的 nginx 設定，並以非 0 結束。
 
 ## 無障礙
 
@@ -86,4 +86,4 @@
 **所屬**：KoiLiSu 開利手
 **網址**：https://toka.dev/koilisu/pitrace
 
-部署腳本不執行語法檢查或完整測試；請在提交前或 CI 執行專案檢查。
+部署腳本不執行語法檢查或完整測試；請在 commit 前或 CI 執行專案檢查。

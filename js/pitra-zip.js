@@ -1,6 +1,6 @@
-// 手寫、零依賴的 ZIP（STORED，不壓縮）讀寫模組。
+// 手寫、零相依的 ZIP（STORED，不壓縮）讀寫模組。
 // Pitrace 刻意不使用 fflate/jszip 等第三方函式庫：.pitra 內容物本來就是已壓縮的
-// PNG/JPEG/WebP 加上小型 JSON，壓縮增益很小；手寫可完全避免任何外部依賴與 CDN 執行期呼叫。
+// PNG/JPEG/WebP 加上小型 JSON，壓縮增益很小；手寫可完全避免任何外部相依與 CDN 執行期呼叫。
 
 const LOCAL_HEADER_SIZE = 30;
 const CENTRAL_HEADER_SIZE = 46;
