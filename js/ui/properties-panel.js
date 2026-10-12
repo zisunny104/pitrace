@@ -9,7 +9,7 @@ import { loopsFromSelection } from '../canvas/selection-geometry.js';
 import { flattenLoopsAsync } from '../workers/selection-worker-client.js';
 import { el, bindRangeNumberPair, downloadBlob } from './dom-utils.js';
 
-// OCR 辨識文字建議物件名稱：故意不當常駐依賴，只在使用者按下辨識鈕時才動態載入 Tesseract.js
+// OCR 辨識文字建議物件名稱：故意不當常駐相依，只在使用者按下辨識鈕時才動態載入 Tesseract.js
 // （純瀏覽器端 WASM 執行、不上傳圖片），避免拖慢一般使用者用不到這個功能時的啟動速度。
 let tesseractLoadPromise = null;
 function loadTesseract() {

@@ -3,7 +3,7 @@
 // 跟一般圖片匯入共用同一套流程；超過 MAX_SCAN_PIXELS 時也會透過 state.js 既有的
 // getScanBitmap()/_downscaleScan() 延遲壓縮成 webp，PDF 匯入不需要另外處理。
 //
-// pdf.js 是這個專案唯一的外部函式庫依賴，透過 cdnjs 以原生 ES module 動態載入——目前 cdnjs
+// pdf.js 是這個專案唯一的外部函式庫相依，透過 cdnjs 以原生 ES module 動態載入——目前 cdnjs
 // 上 pdf.js 的建置只提供 .mjs（ESM），沒有 UMD 版本，所以用 import() 而不是掛 <script> 全域，
 // 跟專案本身全 ES6 module 的架構一致。
 
