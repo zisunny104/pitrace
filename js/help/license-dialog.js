@@ -1,6 +1,6 @@
 // 「授權」modal：第一次開啟時讀根目錄 LICENSE 並轉成 HTML，每章一個分頁；載入失敗顯示簡短錯誤。
 
-import { renderMarkdown, splitChapters } from "./markdown.js";
+import { renderMarkdown } from "./markdown.js";
 
 export function wireLicenseDialog() {
     const dialog = document.getElementById("license-dialog");
@@ -75,16 +75,27 @@ export function wireLicenseDialog() {
         loaded = true;
     }
 
+    // LICENSE 維持純英文官方範本（供 GitHub 授權徽章偵測），中文譯文與第三方元件各自分檔，
+    // 這樣才不會干擾 GitHub 對 LICENSE 內容的自動比對。
+    const LICENSE_TABS = [
+        { title: "MIT License", file: "LICENSE" },
+        { title: "中文翻譯", file: "LICENSE.zh-TW.md" },
+        { title: "第三方元件", file: "THIRD-PARTY-LICENSES.md" },
+    ];
+
     function load() {
         if (loaded || loading) return;
-        loading = fetch(src)
-            .then((res) => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.text();
-            })
-            .then((text) => {
-                const chapters = splitChapters(text);
-                if (!chapters.length) throw new Error("沒有章節");
+        const base = src.replace(/\/LICENSE$/, "");
+        loading = Promise.all(
+            LICENSE_TABS.map((tab) =>
+                fetch(`${base}/${tab.file}`).then((res) => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status} (${tab.file})`);
+                    return res.text();
+                })
+            )
+        )
+            .then((texts) => {
+                const chapters = LICENSE_TABS.map((tab, i) => ({ title: tab.title, body: texts[i] }));
                 build(chapters);
                 if (dialog.open) tabsBox.querySelector('[tabindex="0"]')?.focus();
             })
