@@ -7,15 +7,15 @@
 // 上 pdf.js 的建置只提供 .mjs（ESM），沒有 UMD 版本，所以用 import() 而不是掛 <script> 全域，
 // 跟專案本身全 ES6 module 的架構一致。
 
-const PDFJS_VERSION = '6.3.289';
+const PDFJS_VERSION = '6.4.299';
 const PDFJS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/`;
 
 // dynamic import() 沒有原生的 integrity 屬性可用（跟 <script> 標籤不同），這裡手動做等效的
 // 完整性校驗：fetch→算 SHA-384→比對已鎖定的雜湊值→包成 blob: URL 再 import，防止 CDN
 // 內容被竄改。兩個檔案都是單一檔案 bundle（沒有對其他檔案的 relative import），改從 blob: URL
 // 載入不會破壞內部路徑解析。
-const PDFJS_MAIN_SHA384 = 'z3N/QnTq7KUG0r5jEmpE9EQ2Yw9XQxeHTtq/XWs9uR7UDmdiZAI2xGZ7t151ou8z';
-const PDFJS_WORKER_SHA384 = 'ZsWbdAW9R0tLHblpnT9OlTG0oDnOBndXJiKFJnsmzR2TXBm7oh5eDqIyTrxseosS';
+const PDFJS_MAIN_SHA384 = 'QCvhu/UPp22U/TNLVbQNONL82ES2yY717GAiqP9VVu37Y7+m9VPKvadGx9XlFvcp';
+const PDFJS_WORKER_SHA384 = 'NfW/OTMWezITv4oaALvfH7MFLwzPxEvpySmDpoALa1mtTY8MC200l0ZNFD+SOlrM';
 
 async function verifiedBlobUrl(url, expectedSha384Base64) {
     const res = await fetch(url);
